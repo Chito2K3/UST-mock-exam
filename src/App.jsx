@@ -5,7 +5,8 @@ import LandingHero from './components/LandingHero';
 import ExamEngine from './components/ExamEngine';
 import ResultAnalytics from './components/ResultAnalytics';
 import PracticeDrillModal from './components/PracticeDrillModal';
-import { MOCK_QUESTIONS } from './data/mockQuestions';
+import ExamStartModal from './components/ExamStartModal';
+import { MOCK_QUESTIONS, SUBTEST_METADATA } from './data/mockQuestions';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'exam' | 'results'
@@ -19,6 +20,7 @@ export default function App() {
   ]);
   const [examResults, setExamResults] = useState(null);
   const [isDrillModalOpen, setIsDrillModalOpen] = useState(false);
+  const [pendingExam, setPendingExam] = useState(null);
 
   const clearSavedExamProgress = () => {
     try {
@@ -29,34 +31,72 @@ export default function App() {
     }
   };
 
-  // Start Full 4-Part Exam (or Tiered Complete Exam Set)
-  const handleStartExamSet = (difficultyTier = 'all') => {
-    clearSavedExamProgress();
+  // Request Full 4-Part Exam or Tiered Complete Exam Set
+  const handleRequestExamSet = (difficultyTier = 'all') => {
     let filtered = [...MOCK_QUESTIONS];
     if (difficultyTier !== 'all') {
       filtered = filtered.filter((q) => q.difficulty === difficultyTier);
     }
-    setActiveQuestions(filtered);
-    setActiveSubtests(['mental_ability', 'english', 'mathematics', 'science']);
-    setExamMode(difficultyTier === 'all' ? 'full' : `tier-${difficultyTier}`);
-    setExamResults(null);
-    setCurrentView('exam');
+    const isFull = difficultyTier === 'all';
+
+    setPendingExam({
+      title: isFull
+        ? 'USTET Full 4-Part Simulation'
+        : `USTET Complete ${difficultyTier} Mock Set`,
+      badge: isFull ? 'Official Simulation' : `${difficultyTier} Tier Set`,
+      subtitle: isFull
+        ? 'All 4 standard sections with authentic timing and sequential section locking'
+        : `Targeted difficulty set covering all 4 standard USTET examination areas`,
+      itemCount: filtered.length,
+      partsCount: 4,
+      durationMinutes: 165,
+      subjects: [
+        'Part 1: Mental Ability (30m)',
+        'Part 2: English Proficiency (45m)',
+        'Part 3: Mathematics (45m)',
+        'Part 4: Science (45m)',
+      ],
+      calculatorAllowed: false,
+      onConfirm: () => {
+        clearSavedExamProgress();
+        setActiveQuestions(filtered);
+        setActiveSubtests(['mental_ability', 'english', 'mathematics', 'science']);
+        setExamMode(isFull ? 'full' : `tier-${difficultyTier}`);
+        setExamResults(null);
+        setCurrentView('exam');
+        setPendingExam(null);
+      },
+    });
   };
 
-  // Start full subject-specific test
-  const handleStartSubjectExam = (subtestKey) => {
-    clearSavedExamProgress();
+  // Request full subject-specific test
+  const handleRequestSubjectExam = (subtestKey) => {
+    const meta = SUBTEST_METADATA[subtestKey];
     const filtered = MOCK_QUESTIONS.filter((q) => q.subtest === subtestKey);
-    setActiveQuestions(filtered);
-    setActiveSubtests([subtestKey]);
-    setExamMode('subject');
-    setExamResults(null);
-    setCurrentView('exam');
+
+    setPendingExam({
+      title: `${meta?.title || 'Subject'} Examination`,
+      badge: 'Single Subject Focus',
+      subtitle: `${meta?.subtitle || 'Full-length subject section test'}`,
+      itemCount: filtered.length,
+      partsCount: 1,
+      durationMinutes: meta?.defaultDurationMinutes || 45,
+      subjects: [`${meta?.title || 'Subject'} (${filtered.length} Items)`],
+      calculatorAllowed: false,
+      onConfirm: () => {
+        clearSavedExamProgress();
+        setActiveQuestions(filtered);
+        setActiveSubtests([subtestKey]);
+        setExamMode('subject');
+        setExamResults(null);
+        setCurrentView('exam');
+        setPendingExam(null);
+      },
+    });
   };
 
-  // Start Targeted Custom Drill
-  const handleStartDrill = ({ subtest, difficulty }) => {
-    clearSavedExamProgress();
+  // Request Targeted Custom Drill
+  const handleRequestDrill = ({ subtest, difficulty }) => {
     let filtered = [...MOCK_QUESTIONS];
 
     if (subtest !== 'all') {
@@ -71,12 +111,39 @@ export default function App() {
     }
 
     const availableSubtests = Array.from(new Set(filtered.map((q) => q.subtest)));
+    const activeSubs = availableSubtests.length > 0 ? availableSubtests : ['mental_ability'];
+    const totalMinutes = activeSubs.reduce(
+      (acc, k) => acc + (SUBTEST_METADATA[k]?.defaultDurationMinutes || 15),
+      0
+    );
 
-    setActiveQuestions(filtered);
-    setActiveSubtests(availableSubtests.length > 0 ? availableSubtests : ['mental_ability']);
-    setExamMode('drill');
-    setExamResults(null);
-    setCurrentView('exam');
+    setPendingExam({
+      title: 'Targeted Practice Drill',
+      badge: difficulty === 'all' ? 'Custom Drill' : `${difficulty} Drill`,
+      subtitle:
+        subtest === 'all'
+          ? 'Comprehensive Multi-Subject Drill Session'
+          : `${SUBTEST_METADATA[subtest]?.title || 'Subject'} Drill Session`,
+      itemCount: filtered.length,
+      partsCount: activeSubs.length,
+      durationMinutes: totalMinutes,
+      subjects: activeSubs.map(
+        (k) =>
+          `${SUBTEST_METADATA[k]?.title || k} (${
+            filtered.filter((q) => q.subtest === k).length
+          } items)`
+      ),
+      calculatorAllowed: false,
+      onConfirm: () => {
+        clearSavedExamProgress();
+        setActiveQuestions(filtered);
+        setActiveSubtests(activeSubs);
+        setExamMode('drill');
+        setExamResults(null);
+        setCurrentView('exam');
+        setPendingExam(null);
+      },
+    });
   };
 
   const handleFinishExam = (results) => {
@@ -85,7 +152,7 @@ export default function App() {
   };
 
   const handleRetakeExam = () => {
-    handleStartExamSet('all');
+    handleRequestExamSet('all');
   };
 
   const handleExitExam = () => {
@@ -109,9 +176,9 @@ export default function App() {
         {currentView === 'home' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
             <LandingHero
-              onStartFullExam={() => handleStartExamSet('all')}
-              onStartTierExam={handleStartExamSet}
-              onStartSubjectExam={handleStartSubjectExam}
+              onStartFullExam={() => handleRequestExamSet('all')}
+              onStartTierExam={handleRequestExamSet}
+              onStartSubjectExam={handleRequestSubjectExam}
               onOpenDrillMode={() => setIsDrillModalOpen(true)}
             />
           </div>
@@ -142,7 +209,14 @@ export default function App() {
       <PracticeDrillModal
         isOpen={isDrillModalOpen}
         onClose={() => setIsDrillModalOpen(false)}
-        onStartDrill={handleStartDrill}
+        onStartDrill={handleRequestDrill}
+      />
+
+      <ExamStartModal
+        isOpen={!!pendingExam}
+        config={pendingExam}
+        onConfirm={pendingExam?.onConfirm}
+        onClose={() => setPendingExam(null)}
       />
     </div>
   );
