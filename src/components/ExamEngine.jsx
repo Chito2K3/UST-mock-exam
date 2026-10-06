@@ -106,6 +106,31 @@ export default function ExamEngine({
     setQuestionPaceSeconds(0);
   }, [currentQuestionIndex]);
 
+  // Keyboard navigation shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (isScratchpadOpen || showSectionSubmitConfirm) return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        if (currentQuestionIndex < subtestQuestions.length - 1) {
+          handleNextQuestion();
+        }
+      } else if (e.key === 'ArrowLeft') {
+        if (currentQuestionIndex > 0) {
+          handlePrevQuestion();
+        }
+      } else if (['a', 'b', 'c', 'd', 'A', 'B', 'C', 'D'].includes(e.key)) {
+        handleSelectOption(e.key.toUpperCase());
+      } else if (e.key === 'f' || e.key === 'F') {
+        handleToggleFlag();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentQuestionIndex, subtestQuestions.length, isScratchpadOpen, showSectionSubmitConfirm, currentQuestion]);
+
   const handleSelectOption = (optionId) => {
     if (!currentQuestion) return;
     setUserAnswers((prev) => ({
@@ -294,43 +319,76 @@ export default function ExamEngine({
                     </span>
                   </div>
 
-                  {/* Flag / Bookmark Button */}
-                  <button
-                    onClick={handleToggleFlag}
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                      flaggedQuestions[currentQuestion.id]
-                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50'
-                        : 'text-gray-400 hover:text-gray-200 bg-[#1c1f2e]'
-                    }`}
-                  >
-                    {flaggedQuestions[currentQuestion.id] ? (
-                      <>
-                        <BookmarkCheck className="w-3.5 h-3.5 text-amber-400" />
-                        Flagged
-                      </>
+                  {/* Top Action Controls: Quick Prev/Next + Flag */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handlePrevQuestion}
+                      disabled={currentQuestionIndex === 0}
+                      className="px-2.5 py-1 rounded-lg bg-[#1c1f2e] hover:bg-[#282d3f] text-gray-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-1 transition border border-gray-700/60"
+                      title="Previous Question (Left Arrow)"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      Prev
+                    </button>
+
+                    {currentQuestionIndex < subtestQuestions.length - 1 ? (
+                      <button
+                        onClick={handleNextQuestion}
+                        className="px-3.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-black flex items-center gap-1 transition shadow-sm"
+                        title="Next Question (Right Arrow or Enter)"
+                      >
+                        Next
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
                     ) : (
-                      <>
-                        <Bookmark className="w-3.5 h-3.5" />
-                        Flag for Review
-                      </>
+                      <button
+                        onClick={() => setShowSectionSubmitConfirm(true)}
+                        className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black flex items-center gap-1 transition"
+                      >
+                        Submit
+                        <Send className="w-3 h-3" />
+                      </button>
                     )}
-                  </button>
+
+                    {/* Flag / Bookmark Button */}
+                    <button
+                      onClick={handleToggleFlag}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                        flaggedQuestions[currentQuestion.id]
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50'
+                          : 'text-gray-400 hover:text-gray-200 bg-[#1c1f2e]'
+                      }`}
+                      title="Flag for Review (F)"
+                    >
+                      {flaggedQuestions[currentQuestion.id] ? (
+                        <>
+                          <BookmarkCheck className="w-3.5 h-3.5 text-amber-400" />
+                          <span className="hidden sm:inline">Flagged</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bookmark className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Flag</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Stimulus Passage if available */}
                 {currentQuestion.stimulus && (
-                  <div className="mb-5 p-4 rounded-xl bg-[#0f1118] border border-gray-800 text-gray-300 text-xs sm:text-sm italic leading-relaxed">
+                  <div className="mb-4 p-4 rounded-xl bg-[#0f1118] border border-gray-800 text-gray-300 text-xs sm:text-sm italic leading-relaxed">
                     {currentQuestion.stimulus}
                   </div>
                 )}
 
                 {/* Question Content */}
-                <div className="text-white text-base sm:text-lg font-medium leading-relaxed mb-6">
+                <div className="text-white text-base sm:text-lg font-medium leading-relaxed mb-5">
                   <MathRenderer content={currentQuestion.question} />
                 </div>
 
                 {/* Options List */}
-                <div className="space-y-3">
+                <div className="space-y-2.5 sm:space-y-3 pb-4">
                   {currentQuestion.options.map((opt) => {
                     const isSelected = userAnswers[currentQuestion.id] === opt.id;
 
@@ -338,7 +396,7 @@ export default function ExamEngine({
                       <button
                         key={opt.id}
                         onClick={() => handleSelectOption(opt.id)}
-                        className={`w-full text-left p-4 rounded-xl border flex items-start gap-4 transition group ${
+                        className={`w-full text-left p-3.5 sm:p-4 rounded-xl border flex items-start gap-3.5 transition group ${
                           isSelected
                             ? 'bg-amber-500/10 border-amber-500 text-amber-200 ring-1 ring-amber-500/40'
                             : 'bg-[#181b26] border-gray-800/90 text-gray-300 hover:bg-[#1f2332] hover:border-gray-700'
@@ -362,31 +420,34 @@ export default function ExamEngine({
                 </div>
               </div>
 
-              {/* Bottom Navigation Buttons */}
-              <div className="mt-8 pt-4 border-t border-gray-800 flex items-center justify-between gap-3">
+              {/* Bottom Navigation Buttons (Sticky Bar - Always Visible Without Scrolling) */}
+              <div className="sticky bottom-0 z-20 mt-4 -mx-6 -mb-6 sm:-mx-8 sm:-mb-8 px-6 sm:px-8 py-3 bg-[#11131c]/95 backdrop-blur-md border-t border-gray-800 rounded-b-2xl shadow-2xl flex items-center justify-between gap-3">
                 <button
                   onClick={handlePrevQuestion}
                   disabled={currentQuestionIndex === 0}
-                  className="px-4 py-2 rounded-xl bg-[#1c1f2e] text-gray-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold flex items-center gap-1.5 transition"
+                  className="px-4 py-2 rounded-xl bg-[#1c1f2e] text-gray-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold flex items-center gap-1.5 transition border border-gray-700/60"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Previous
                 </button>
 
-                <div className="text-xs text-gray-500 font-medium">
+                <div className="flex items-center gap-2 text-xs">
                   {userAnswers[currentQuestion.id] ? (
-                    <span className="text-emerald-400 flex items-center gap-1">
+                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
                       <Check className="w-3.5 h-3.5" /> Answer recorded
                     </span>
                   ) : (
-                    <span>Not yet answered</span>
+                    <span className="text-gray-400">Not yet answered</span>
                   )}
+                  <span className="hidden md:inline text-gray-400 text-[11px] font-mono">
+                    [Keys: A-D | ←/→]
+                  </span>
                 </div>
 
                 {currentQuestionIndex < subtestQuestions.length - 1 ? (
                   <button
                     onClick={handleNextQuestion}
-                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-1.5 shadow transition"
+                    className="px-6 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black flex items-center gap-1.5 shadow-lg shadow-amber-500/20 transition transform hover:-translate-y-0.5 cursor-pointer"
                   >
                     Next
                     <ChevronRight className="w-4 h-4" />
@@ -394,7 +455,7 @@ export default function ExamEngine({
                 ) : (
                   <button
                     onClick={() => setShowSectionSubmitConfirm(true)}
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black text-xs font-black flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition"
+                    className="px-6 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black text-xs font-black flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition cursor-pointer"
                   >
                     Complete Section
                     <Send className="w-3.5 h-3.5" />
