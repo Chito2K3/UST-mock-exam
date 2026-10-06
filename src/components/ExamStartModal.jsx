@@ -9,6 +9,7 @@ import {
   Lock,
   Layers,
 } from 'lucide-react';
+import ustSeal from '../assets/ust-seal.jpg';
 
 export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
   useEffect(() => {
@@ -43,9 +44,13 @@ export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-4 border-b border-gray-800 pb-4 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 p-0.5 shadow-lg shadow-amber-500/20 shrink-0">
-              <div className="w-full h-full bg-[#11121a] rounded-[14px] flex items-center justify-center font-black text-amber-400 text-sm">
-                UST
+            <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 p-0.5 shadow-lg shadow-amber-500/25 shrink-0">
+              <div className="w-full h-full rounded-full overflow-hidden bg-[#11121a]">
+                <img
+                  src={ustSeal}
+                  alt="University of Santo Tomas Official Seal"
+                  className="w-full h-full object-cover scale-105"
+                />
               </div>
             </div>
             <div>

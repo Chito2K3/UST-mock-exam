@@ -1,5 +1,6 @@
 import React from 'react';
 import { Zap } from 'lucide-react';
+import ustSeal from '../assets/ust-seal.jpg';
 
 export default function Header({ currentView, onGoHome, onOpenDrillMode }) {
   return (
@@ -10,9 +11,13 @@ export default function Header({ currentView, onGoHome, onOpenDrillMode }) {
           onClick={onGoHome}
           className="flex items-center gap-3 cursor-pointer group select-none"
         >
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 p-0.5 shadow-lg shadow-amber-500/20 group-hover:scale-105 transition">
-            <div className="w-full h-full bg-[#11121a] rounded-[14px] flex items-center justify-center font-black text-amber-400 text-sm tracking-wider">
-              UST
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 p-0.5 shadow-lg shadow-amber-500/25 group-hover:scale-105 transition shrink-0">
+            <div className="w-full h-full rounded-full overflow-hidden bg-[#11121a]">
+              <img
+                src={ustSeal}
+                alt="University of Santo Tomas Official Seal"
+                className="w-full h-full object-cover scale-105"
+              />
             </div>
           </div>
           <div>

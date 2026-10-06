@@ -22,6 +22,7 @@ import {
 import MathRenderer from './MathRenderer';
 import ScratchpadModal from './ScratchpadModal';
 import { SUBTEST_METADATA } from '../data/mockQuestions';
+import ustSeal from '../assets/ust-seal.jpg';
 
 export default function ExamEngine({
   questions,
@@ -284,8 +285,14 @@ export default function ExamEngine({
             className="flex items-center gap-3 cursor-pointer group select-none"
             title="Return to Main Page"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 text-black font-black flex items-center justify-center text-sm shadow-md shadow-amber-500/20 group-hover:scale-105 transition">
-              UST
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 p-0.5 shadow-md shadow-amber-500/25 group-hover:scale-105 transition shrink-0">
+              <div className="w-full h-full rounded-full overflow-hidden bg-[#11121a]">
+                <img
+                  src={ustSeal}
+                  alt="University of Santo Tomas Official Seal"
+                  className="w-full h-full object-cover scale-105"
+                />
+              </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
