@@ -368,12 +368,12 @@ export const MATHEMATICS_QUESTIONS = [
     question: "The sum to infinity of a convergent geometric series is $18$. If the second term is $4$, find the common ratio $r$ ($0 < r < 1$).",
     options: [
       { id: "A", text: "$1/3$" },
-      { id: "B", text: "$2/3$" },
+      { id: "B", text: "$1/6$" },
       { id: "C", text: "$1/2$" },
       { id: "D", text: "$3/4$" },
     ],
     correctAnswer: "A",
-    explanation: "$a_1 = 18(1-r)$. $a_2 = 18r(1-r) = 4 \\implies 9r^2 - 9r + 2 = 0 \\implies (3r-1)(3r-2)=0$. Roots are $1/3$ and $2/3$.",
+    explanation: "$a_1 = 18(1-r)$. $a_2 = 18r(1-r) = 4 \\implies 9r^2 - 9r + 2 = 0 \\implies (3r-1)(3r-2)=0$, yielding roots $r = 1/3$ or $r = 2/3$. Of these, only $1/3$ is among the given options.",
   },
   {
     id: "MATH-24",
