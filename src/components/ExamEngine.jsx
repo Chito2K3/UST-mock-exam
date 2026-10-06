@@ -217,7 +217,7 @@ export default function ExamEngine({
   // Keyboard navigation shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (isScratchpadOpen || showSectionSubmitConfirm || showRestartConfirm) return;
+      if (showSectionSubmitConfirm || showRestartConfirm) return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
       if (e.key === 'ArrowRight' || e.key === 'Enter') {
@@ -238,7 +238,6 @@ export default function ExamEngine({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    isScratchpadOpen,
     showSectionSubmitConfirm,
     showRestartConfirm,
     currentQuestionIndex,
@@ -333,12 +332,17 @@ export default function ExamEngine({
 
             {/* Scratchpad Button */}
             <button
-              onClick={() => setIsScratchpadOpen(true)}
-              className="px-3 py-1.5 bg-[#1e2230] hover:bg-[#282d3f] border border-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
-              title="Open scratchpad for calculations"
+              onClick={() => setIsScratchpadOpen((prev) => !prev)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+                isScratchpadOpen
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/60 ring-1 ring-amber-500/30'
+                  : 'bg-[#1e2230] hover:bg-[#282d3f] border border-amber-500/30 text-amber-300'
+              }`}
+              title={isScratchpadOpen ? 'Close or toggle scratchpad' : 'Open scratchpad for calculations'}
             >
               <PenTool className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Scratchpad</span>
+              {isScratchpadOpen && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>}
             </button>
 
             {/* Restart Button with Pre-Click Halfway Rule Notification */}
@@ -778,8 +782,20 @@ export default function ExamEngine({
         </div>
       )}
 
-      {/* Scratchpad Modal */}
-      <ScratchpadModal isOpen={isScratchpadOpen} onClose={() => setIsScratchpadOpen(false)} />
+      {/* Scratchpad Modal / Docked Drawer */}
+      <ScratchpadModal
+        isOpen={isScratchpadOpen}
+        onClose={() => setIsScratchpadOpen(false)}
+        currentQuestion={currentQuestion}
+        currentQuestionIndex={currentQuestionIndex}
+        totalQuestions={subtestQuestions.length}
+        onNextQuestion={handleNextQuestion}
+        onPrevQuestion={handlePrevQuestion}
+        onSelectOption={handleSelectOption}
+        selectedOption={userAnswers[currentQuestion?.id]}
+        isFlagged={!!flaggedQuestions[currentQuestion?.id]}
+        onToggleFlag={handleToggleFlag}
+      />
     </div>
   );
 }
