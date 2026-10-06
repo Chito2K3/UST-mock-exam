@@ -216,7 +216,7 @@ export default function LandingHero({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/60 text-gray-300">
-              {UST_PROGRAMS.slice(0, 6).map((prog) => (
+              {UST_PROGRAMS.map((prog) => (
                 <tr key={prog.shortCode} className="hover:bg-white/[0.02] transition">
                   <td className="py-3 px-4 font-semibold text-white">{prog.college}</td>
                   <td className="py-3 px-4 text-amber-300 font-medium">
