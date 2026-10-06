@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { X, Target, Zap, BookOpen, Brain, Calculator, Atom, Check } from 'lucide-react';
-import { SUBTEST_METADATA } from '../data/mockQuestions';
+import { X, Target, Zap, BookOpen, Brain, Calculator, Atom } from 'lucide-react';
 
 export default function PracticeDrillModal({ isOpen, onClose, onStartDrill }) {
   const [selectedSubtest, setSelectedSubtest] = useState('all');

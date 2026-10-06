@@ -1,18 +1,12 @@
 import React from 'react';
 import {
-  Brain,
-  BookOpen,
-  Calculator,
-  Atom,
   Clock,
   ShieldCheck,
   Award,
-  Zap,
-  GraduationCap,
   Sparkles,
   ArrowRight,
-  CheckCircle,
   Play,
+  Zap,
 } from 'lucide-react';
 import { UST_PROGRAMS } from '../data/programs';
 import { SUBTEST_METADATA } from '../data/mockQuestions';
@@ -84,6 +78,14 @@ export default function LandingHero({
               >
                 <span className="w-2 h-2 rounded-full bg-red-400"></span>
                 Complete HARD Mock Set (All 4 Subjects)
+              </button>
+
+              <button
+                onClick={onOpenDrillMode}
+                className="px-5 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-2 transition"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                Custom Practice Drill
               </button>
             </div>
           </div>

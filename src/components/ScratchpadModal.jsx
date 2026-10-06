@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { X, Eraser, PenTool, Trash2, Type } from 'lucide-react';
+import { X, PenTool, Trash2, Type } from 'lucide-react';
 
 export default function ScratchpadModal({ isOpen, onClose }) {
   const canvasRef = useRef(null);

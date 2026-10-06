@@ -9,13 +9,9 @@ import {
   Brain,
   Calculator,
   Atom,
-  ChevronDown,
-  Filter,
-  Check,
   AlertTriangle,
   GraduationCap,
   Sparkles,
-  Share2,
   BookmarkCheck,
   BarChart3,
 } from 'lucide-react';
@@ -29,6 +25,7 @@ export default function ResultAnalytics({
   questions,
   onRetakeExam,
   onOpenDrillMode,
+  isDrillMode = false,
 }) {
   const [selectedSubtestFilter, setSelectedSubtestFilter] = useState('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all'); // 'all' | 'incorrect' | 'correct' | 'flagged'
@@ -38,7 +35,6 @@ export default function ResultAnalytics({
   const {
     userAnswers = {},
     flaggedQuestions = {},
-    subtestStats = {},
     totalTimeSeconds = 0,
   } = examResults;
 
@@ -79,7 +75,7 @@ export default function ResultAnalytics({
           origin: { y: 0.6 },
           colors: ['#F1B82D', '#FFFFFF', '#111111', '#FFC72C'],
         });
-      } catch (e) {
+      } catch {
         // Safe fallback
       }
     }
@@ -334,6 +330,15 @@ export default function ResultAnalytics({
                   : 'bg-red-950/20 border-red-500/40 text-red-100'
               }`}
             >
+              {isDrillMode && (
+                <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>
+                    <strong>Practice / Drill Mode Active:</strong> Full college admission forecasts require all 4 subtests (270 items). Scores below reflect only the items practiced in this session.
+                  </span>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                 <div>
                   <span className="text-[11px] font-extrabold uppercase px-2.5 py-1 rounded bg-black/40 text-amber-300 border border-amber-500/30">
@@ -515,7 +520,7 @@ export default function ResultAnalytics({
               No questions match the current filter selection.
             </div>
           ) : (
-            filteredQuestions.map((q, idx) => {
+            filteredQuestions.map((q) => {
               const userAnswer = userAnswers[q.id];
               const isCorrect = userAnswer === q.correctAnswer;
               const isFlagged = !!flaggedQuestions[q.id];

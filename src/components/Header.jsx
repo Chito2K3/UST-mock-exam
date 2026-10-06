@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Zap, HelpCircle } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
 export default function Header({ currentView, onGoHome, onOpenDrillMode }) {
   return (

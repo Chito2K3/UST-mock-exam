@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Clock,
   AlertTriangle,
@@ -17,6 +17,7 @@ import {
   Check,
   Lock,
   Info,
+  Home,
 } from 'lucide-react';
 import MathRenderer from './MathRenderer';
 import ScratchpadModal from './ScratchpadModal';
@@ -27,7 +28,6 @@ export default function ExamEngine({
   activeSubtests = ['mental_ability', 'english', 'mathematics', 'science'],
   onFinishExam,
   onExitExam,
-  isDrillMode = false,
 }) {
   // State for subtest and active question
   const [currentSubtestIndex, setCurrentSubtestIndex] = useState(0);
@@ -84,6 +84,102 @@ export default function ExamEngine({
   const isNearingHalfway =
     !isPastHalfway && totalAnsweredAcrossExam >= Math.floor(halfwayThreshold * 0.8);
 
+  // Navigation and action handlers
+  const handleSelectOption = useCallback((optionId) => {
+    if (!currentQuestion) return;
+    setUserAnswers((prev) => ({
+      ...prev,
+      [currentQuestion.id]: optionId,
+    }));
+  }, [currentQuestion]);
+
+  const handleToggleFlag = useCallback(() => {
+    if (!currentQuestion) return;
+    setFlaggedQuestions((prev) => ({
+      ...prev,
+      [currentQuestion.id]: !prev[currentQuestion.id],
+    }));
+  }, [currentQuestion]);
+
+  const handleNextQuestion = useCallback(() => {
+    if (currentQuestionIndex < subtestQuestions.length - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+      setQuestionPaceSeconds(0);
+    }
+  }, [currentQuestionIndex, subtestQuestions.length]);
+
+  const handlePrevQuestion = useCallback(() => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex((prev) => prev - 1);
+      setQuestionPaceSeconds(0);
+    }
+  }, [currentQuestionIndex]);
+
+  const handleJumpToQuestion = useCallback((index) => {
+    setCurrentQuestionIndex(index);
+    setQuestionPaceSeconds(0);
+  }, []);
+
+  const finishEntireExam = useCallback(() => {
+    // Clear in-flight exam storage
+    try {
+      localStorage.removeItem('ustet_user_answers');
+      localStorage.removeItem('ustet_flagged');
+    } catch {
+      // Ignore
+    }
+
+    onFinishExam({
+      userAnswers,
+      flaggedQuestions,
+      totalTimeSeconds: totalTimeSpent,
+    });
+  }, [onFinishExam, userAnswers, flaggedQuestions, totalTimeSpent]);
+
+  const advanceToNextSection = useCallback(() => {
+    setShowSectionSubmitConfirm(false);
+    if (currentSubtestIndex < activeSubtests.length - 1) {
+      const nextIndex = currentSubtestIndex + 1;
+      const nextSubtestKey = activeSubtests[nextIndex];
+      const nextMeta = SUBTEST_METADATA[nextSubtestKey];
+      setCurrentSubtestIndex(nextIndex);
+      setCurrentQuestionIndex(0);
+      setQuestionPaceSeconds(0);
+      setSectionTimeRemaining((nextMeta?.defaultDurationMinutes || 15) * 60);
+    } else {
+      // Final Section completed! Finish exam
+      finishEntireExam();
+    }
+  }, [currentSubtestIndex, activeSubtests, finishEntireExam]);
+
+
+
+  // Restart Examination (Permitted only before halfway point)
+  const handleRestartExam = () => {
+    try {
+      localStorage.removeItem('ustet_user_answers');
+      localStorage.removeItem('ustet_flagged');
+    } catch {
+      // Ignore
+    }
+
+    setUserAnswers({});
+    setFlaggedQuestions({});
+    setCurrentSubtestIndex(0);
+    setCurrentQuestionIndex(0);
+    const firstSubtestKey = activeSubtests[0];
+    const firstSubtestMeta = SUBTEST_METADATA[firstSubtestKey];
+    setSectionTimeRemaining((firstSubtestMeta?.defaultDurationMinutes || 15) * 60);
+    setQuestionPaceSeconds(0);
+    setTotalTimeSpent(0);
+    setShowRestartConfirm(false);
+  };
+
+  const advanceToNextSectionRef = useRef(advanceToNextSection);
+  useEffect(() => {
+    advanceToNextSectionRef.current = advanceToNextSection;
+  });
+
   // Synchronize localStorage
   useEffect(() => {
     try {
@@ -94,11 +190,7 @@ export default function ExamEngine({
     }
   }, [userAnswers, flaggedQuestions]);
 
-  // Section timer effect
-  useEffect(() => {
-    setSectionTimeRemaining((currentSubtestMeta?.defaultDurationMinutes || 15) * 60);
-  }, [currentSubtestIndex, currentSubtestMeta]);
-
+  // Section timer tick
   useEffect(() => {
     if (showRestartConfirm) return;
 
@@ -106,7 +198,9 @@ export default function ExamEngine({
       setSectionTimeRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleAutoSubmitSection();
+          setTimeout(() => {
+            advanceToNextSectionRef.current();
+          }, 0);
           return 0;
         }
         return prev - 1;
@@ -117,12 +211,7 @@ export default function ExamEngine({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentSubtestIndex, showRestartConfirm]);
-
-  // Reset pacing timer when question changes
-  useEffect(() => {
-    setQuestionPaceSeconds(0);
-  }, [currentQuestionIndex]);
+  }, [showRestartConfirm]);
 
   // Keyboard navigation shortcuts
   useEffect(() => {
@@ -147,92 +236,17 @@ export default function ExamEngine({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentQuestionIndex, subtestQuestions.length, isScratchpadOpen, showSectionSubmitConfirm, showRestartConfirm, currentQuestion]);
-
-  const handleSelectOption = (optionId) => {
-    if (!currentQuestion) return;
-    setUserAnswers((prev) => ({
-      ...prev,
-      [currentQuestion.id]: optionId,
-    }));
-  };
-
-  const handleToggleFlag = () => {
-    if (!currentQuestion) return;
-    setFlaggedQuestions((prev) => ({
-      ...prev,
-      [currentQuestion.id]: !prev[currentQuestion.id],
-    }));
-  };
-
-  const handleNextQuestion = () => {
-    if (currentQuestionIndex < subtestQuestions.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
-    }
-  };
-
-  const handlePrevQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex((prev) => prev - 1);
-    }
-  };
-
-  const handleJumpToQuestion = (index) => {
-    setCurrentQuestionIndex(index);
-  };
-
-  // Section Advancement (USTET strict locking)
-  const handleAutoSubmitSection = () => {
-    advanceToNextSection();
-  };
-
-  const advanceToNextSection = () => {
-    setShowSectionSubmitConfirm(false);
-    if (currentSubtestIndex < activeSubtests.length - 1) {
-      setCurrentSubtestIndex((prev) => prev + 1);
-      setCurrentQuestionIndex(0);
-    } else {
-      // Final Section completed! Finish exam
-      finishEntireExam();
-    }
-  };
-
-  const finishEntireExam = () => {
-    // Clear in-flight exam storage
-    try {
-      localStorage.removeItem('ustet_user_answers');
-      localStorage.removeItem('ustet_flagged');
-    } catch {
-      // Ignore
-    }
-
-    onFinishExam({
-      userAnswers,
-      flaggedQuestions,
-      totalTimeSeconds: totalTimeSpent,
-    });
-  };
-
-  // Restart Examination (Permitted only before halfway point)
-  const handleRestartExam = () => {
-    try {
-      localStorage.removeItem('ustet_user_answers');
-      localStorage.removeItem('ustet_flagged');
-    } catch {
-      // Ignore
-    }
-
-    setUserAnswers({});
-    setFlaggedQuestions({});
-    setCurrentSubtestIndex(0);
-    setCurrentQuestionIndex(0);
-    const firstSubtestKey = activeSubtests[0];
-    const firstSubtestMeta = SUBTEST_METADATA[firstSubtestKey];
-    setSectionTimeRemaining((firstSubtestMeta?.defaultDurationMinutes || 15) * 60);
-    setQuestionPaceSeconds(0);
-    setTotalTimeSpent(0);
-    setShowRestartConfirm(false);
-  };
+  }, [
+    isScratchpadOpen,
+    showSectionSubmitConfirm,
+    showRestartConfirm,
+    currentQuestionIndex,
+    subtestQuestions.length,
+    handleNextQuestion,
+    handlePrevQuestion,
+    handleSelectOption,
+    handleToggleFlag,
+  ]);
 
   // Formatting helpers
   const formatTime = (seconds) => {
@@ -265,13 +279,17 @@ export default function ExamEngine({
       <header className="sticky top-0 z-40 bg-[#13151f]/95 backdrop-blur border-b border-gray-800 px-4 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* UST Emblem & Section Badge */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 text-black font-black flex items-center justify-center text-sm shadow-md shadow-amber-500/20">
+          <div
+            onClick={onExitExam}
+            className="flex items-center gap-3 cursor-pointer group select-none"
+            title="Return to Main Page"
+          >
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 text-black font-black flex items-center justify-center text-sm shadow-md shadow-amber-500/20 group-hover:scale-105 transition">
               UST
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-white font-extrabold text-sm sm:text-base flex items-center gap-1.5">
+                <span className="text-white font-extrabold text-sm sm:text-base flex items-center gap-1.5 group-hover:text-amber-400 transition">
                   {getSubtestIcon(currentSubtestKey)}
                   {currentSubtestMeta?.title}
                 </span>
@@ -295,6 +313,17 @@ export default function ExamEngine({
               </div>
             )}
 
+            {/* Return to Home / Main Page Button */}
+            <button
+              onClick={onExitExam}
+              className="px-3 py-1.5 bg-[#1e2230] hover:bg-[#25293d] border border-gray-700/80 hover:border-amber-500/50 text-gray-300 hover:text-amber-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-sm group"
+              title="Return to Main Page"
+              aria-label="Return to Home"
+            >
+              <Home className="w-3.5 h-3.5 text-gray-400 group-hover:text-amber-400 transition" />
+              <span className="hidden sm:inline">Home</span>
+            </button>
+
             {/* Scratchpad Button */}
             <button
               onClick={() => setIsScratchpadOpen(true)}
@@ -314,13 +343,12 @@ export default function ExamEngine({
                   }
                 }}
                 disabled={isPastHalfway}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
-                  isPastHalfway
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${isPastHalfway
                     ? 'bg-gray-800/30 text-gray-500 border border-gray-800 cursor-not-allowed opacity-60'
                     : isNearingHalfway
-                    ? 'bg-amber-950/60 hover:bg-amber-900/70 border border-amber-500 text-amber-300 shadow-sm shadow-amber-500/20'
-                    : 'bg-[#1e2230] hover:bg-red-950/40 border border-gray-700 hover:border-red-500/50 text-gray-300 hover:text-red-300'
-                }`}
+                      ? 'bg-amber-950/60 hover:bg-amber-900/70 border border-amber-500 text-amber-300 shadow-sm shadow-amber-500/20'
+                      : 'bg-[#1e2230] hover:bg-red-950/40 border border-gray-700 hover:border-red-500/50 text-gray-300 hover:text-red-300'
+                  }`}
                 aria-label="Restart Examination"
               >
                 {isPastHalfway ? (
@@ -362,25 +390,14 @@ export default function ExamEngine({
 
             {/* Section Countdown Timer */}
             <div
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border font-mono font-bold text-xs sm:text-sm ${
-                isTimeCritical
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border font-mono font-bold text-xs sm:text-sm ${isTimeCritical
                   ? 'bg-red-950/80 border-red-500 text-red-300 animate-pulse'
                   : 'bg-[#1a1c28] border-gray-700 text-gray-100'
-              }`}
+                }`}
             >
               <Clock className={`w-4 h-4 ${isTimeCritical ? 'text-red-400' : 'text-amber-400'}`} />
               <span>{formatTime(sectionTimeRemaining)}</span>
             </div>
-
-            {/* Exit Practice (if in drill mode) */}
-            {isDrillMode && (
-              <button
-                onClick={onExitExam}
-                className="text-xs text-gray-400 hover:text-white px-2 py-1"
-              >
-                Exit
-              </button>
-            )}
           </div>
         </div>
       </header>
@@ -401,13 +418,12 @@ export default function ExamEngine({
                     <span className="text-gray-600">•</span>
                     <span className="text-xs text-gray-400">{currentQuestion.topic}</span>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                        currentQuestion.difficulty === 'EASY'
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${currentQuestion.difficulty === 'EASY'
                           ? 'bg-emerald-950/70 text-emerald-400 border border-emerald-800/40'
                           : currentQuestion.difficulty === 'MEDIUM'
-                          ? 'bg-amber-950/70 text-amber-400 border border-amber-800/40'
-                          : 'bg-red-950/70 text-red-400 border border-red-800/40'
-                      }`}
+                            ? 'bg-amber-950/70 text-amber-400 border border-amber-800/40'
+                            : 'bg-red-950/70 text-red-400 border border-red-800/40'
+                        }`}
                     >
                       {currentQuestion.difficulty}
                     </span>
@@ -447,11 +463,10 @@ export default function ExamEngine({
                     {/* Flag / Bookmark Button */}
                     <button
                       onClick={handleToggleFlag}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                        flaggedQuestions[currentQuestion.id]
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${flaggedQuestions[currentQuestion.id]
                           ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50'
                           : 'text-gray-400 hover:text-gray-200 bg-[#1c1f2e]'
-                      }`}
+                        }`}
                       title="Flag for Review (F)"
                     >
                       {flaggedQuestions[currentQuestion.id] ? (
@@ -490,18 +505,16 @@ export default function ExamEngine({
                       <button
                         key={opt.id}
                         onClick={() => handleSelectOption(opt.id)}
-                        className={`w-full text-left p-3.5 sm:p-4 rounded-xl border flex items-start gap-3.5 transition group ${
-                          isSelected
+                        className={`w-full text-left p-3.5 sm:p-4 rounded-xl border flex items-start gap-3.5 transition group ${isSelected
                             ? 'bg-amber-500/10 border-amber-500 text-amber-200 ring-1 ring-amber-500/40'
                             : 'bg-[#181b26] border-gray-800/90 text-gray-300 hover:bg-[#1f2332] hover:border-gray-700'
-                        }`}
+                          }`}
                       >
                         <span
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 transition ${
-                            isSelected
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 transition ${isSelected
                               ? 'bg-amber-500 text-black shadow-md'
                               : 'bg-[#252838] text-gray-400 group-hover:text-white'
-                          }`}
+                            }`}
                         >
                           {opt.id}
                         </span>
@@ -724,7 +737,7 @@ export default function ExamEngine({
               <p className="text-xs text-gray-300">
                 This will reset your examination progress, clear all recorded answers, restore section timers, and return to Question 1 of Part 1.
               </p>
-              
+
               <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-700/50 text-[11px] text-amber-200 text-left space-y-1">
                 <div className="flex items-center gap-1.5 font-bold text-amber-400">
                   <AlertTriangle className="w-3.5 h-3.5" />

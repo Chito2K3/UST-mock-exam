@@ -20,8 +20,18 @@ export default function App() {
   const [examResults, setExamResults] = useState(null);
   const [isDrillModalOpen, setIsDrillModalOpen] = useState(false);
 
+  const clearSavedExamProgress = () => {
+    try {
+      localStorage.removeItem('ustet_user_answers');
+      localStorage.removeItem('ustet_flagged');
+    } catch {
+      // Ignore
+    }
+  };
+
   // Start Full 4-Part Exam (or Tiered Complete Exam Set)
   const handleStartExamSet = (difficultyTier = 'all') => {
+    clearSavedExamProgress();
     let filtered = [...MOCK_QUESTIONS];
     if (difficultyTier !== 'all') {
       filtered = filtered.filter((q) => q.difficulty === difficultyTier);
@@ -35,6 +45,7 @@ export default function App() {
 
   // Start full subject-specific test
   const handleStartSubjectExam = (subtestKey) => {
+    clearSavedExamProgress();
     const filtered = MOCK_QUESTIONS.filter((q) => q.subtest === subtestKey);
     setActiveQuestions(filtered);
     setActiveSubtests([subtestKey]);
@@ -45,6 +56,7 @@ export default function App() {
 
   // Start Targeted Custom Drill
   const handleStartDrill = ({ subtest, difficulty }) => {
+    clearSavedExamProgress();
     let filtered = [...MOCK_QUESTIONS];
 
     if (subtest !== 'all') {
@@ -78,6 +90,7 @@ export default function App() {
 
   const handleExitExam = () => {
     if (window.confirm('Are you sure you want to exit the exam? Your current progress will be reset.')) {
+      clearSavedExamProgress();
       setCurrentView('home');
     }
   };
@@ -110,7 +123,6 @@ export default function App() {
             activeSubtests={activeSubtests}
             onFinishExam={handleFinishExam}
             onExitExam={handleExitExam}
-            isDrillMode={examMode !== 'full'}
           />
         )}
 
@@ -120,6 +132,7 @@ export default function App() {
             questions={activeQuestions}
             onRetakeExam={handleRetakeExam}
             onOpenDrillMode={() => setIsDrillModalOpen(true)}
+            isDrillMode={examMode !== 'full'}
           />
         )}
       </div>

@@ -22,7 +22,7 @@ export default function MathRenderer({ content, className = '' }) {
 
     // Pattern for $$...$$ or $...$
     const parts = [];
-    const regex = /(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g;
+    const regex = /(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g;
     let lastIndex = 0;
     let match;
 
@@ -82,7 +82,7 @@ export default function MathRenderer({ content, className = '' }) {
             dangerouslySetInnerHTML={{ __html: html }}
           />
         );
-      } catch (err) {
+      } catch {
         return <code key={idx} className="text-amber-400 font-mono text-xs">{part.value}</code>;
       }
     });
