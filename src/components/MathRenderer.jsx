@@ -4,11 +4,19 @@ import katex from 'katex';
 /**
  * Parses a string containing LaTeX equations delimited by $...$ (inline)
  * or $$...$$ (display mode) and renders them using KaTeX.
+ * Also cleans unparsed raw LaTeX commands in text mode like \underline{\hspace{...}}.
  */
 export default function MathRenderer({ content, className = '' }) {
   if (!content) return null;
 
-  // Split by double dollar $$...$$ first, then single dollar $...$
+  const sanitizeText = (txt) => {
+    if (typeof txt !== 'string') return '';
+    return txt
+      .replace(/\\underline\{\\hspace\{[^}]+\}\}/g, '__________')
+      .replace(/\\underline\{[^}]+\}/g, '__________')
+      .replace(/\\hspace\{[^}]+\}/g, '    ');
+  };
+
   const renderMathContent = (text) => {
     if (typeof text !== 'string') return text;
 
@@ -23,7 +31,7 @@ export default function MathRenderer({ content, className = '' }) {
       if (matchIndex > lastIndex) {
         parts.push({
           type: 'text',
-          value: text.substring(lastIndex, matchIndex),
+          value: sanitizeText(text.substring(lastIndex, matchIndex)),
         });
       }
 
@@ -43,13 +51,12 @@ export default function MathRenderer({ content, className = '' }) {
     if (lastIndex < text.length) {
       parts.push({
         type: 'text',
-        value: text.substring(lastIndex),
+        value: sanitizeText(text.substring(lastIndex)),
       });
     }
 
     return parts.map((part, idx) => {
       if (part.type === 'text') {
-        // Handle newlines
         return (
           <span key={idx}>
             {part.value.split('\n').map((line, lIdx, arr) => (

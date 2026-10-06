@@ -9,7 +9,7 @@ import { MOCK_QUESTIONS } from './data/mockQuestions';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'exam' | 'results'
-  const [examMode, setExamMode] = useState('full'); // 'full' | 'drill'
+  const [examMode, setExamMode] = useState('full');
   const [activeQuestions, setActiveQuestions] = useState(MOCK_QUESTIONS);
   const [activeSubtests, setActiveSubtests] = useState([
     'mental_ability',
@@ -20,16 +20,30 @@ export default function App() {
   const [examResults, setExamResults] = useState(null);
   const [isDrillModalOpen, setIsDrillModalOpen] = useState(false);
 
-  // Start Full 4-Part Exam Simulation
-  const handleStartFullExam = () => {
-    setActiveQuestions(MOCK_QUESTIONS);
+  // Start Full 4-Part Exam (or Tiered Complete Exam Set)
+  const handleStartExamSet = (difficultyTier = 'all') => {
+    let filtered = [...MOCK_QUESTIONS];
+    if (difficultyTier !== 'all') {
+      filtered = filtered.filter((q) => q.difficulty === difficultyTier);
+    }
+    setActiveQuestions(filtered);
     setActiveSubtests(['mental_ability', 'english', 'mathematics', 'science']);
-    setExamMode('full');
+    setExamMode(difficultyTier === 'all' ? 'full' : `tier-${difficultyTier}`);
     setExamResults(null);
     setCurrentView('exam');
   };
 
-  // Start Targeted Practice Drill
+  // Start full subject-specific test
+  const handleStartSubjectExam = (subtestKey) => {
+    const filtered = MOCK_QUESTIONS.filter((q) => q.subtest === subtestKey);
+    setActiveQuestions(filtered);
+    setActiveSubtests([subtestKey]);
+    setExamMode('subject');
+    setExamResults(null);
+    setCurrentView('exam');
+  };
+
+  // Start Targeted Custom Drill
   const handleStartDrill = ({ subtest, difficulty }) => {
     let filtered = [...MOCK_QUESTIONS];
 
@@ -41,7 +55,6 @@ export default function App() {
     }
 
     if (filtered.length === 0) {
-      alert('No questions match this specific combination. Resetting to all questions for this subject.');
       filtered = MOCK_QUESTIONS.filter((q) => (subtest !== 'all' ? q.subtest === subtest : true));
     }
 
@@ -54,25 +67,23 @@ export default function App() {
     setCurrentView('exam');
   };
 
-  // Exam completed callback
   const handleFinishExam = (results) => {
     setExamResults(results);
     setCurrentView('results');
   };
 
   const handleRetakeExam = () => {
-    handleStartFullExam();
+    handleStartExamSet('all');
   };
 
   const handleExitExam = () => {
-    if (window.confirm('Are you sure you want to exit the exam? Your current attempt will be discarded.')) {
+    if (window.confirm('Are you sure you want to exit the exam? Your current progress will be reset.')) {
       setCurrentView('home');
     }
   };
 
   return (
     <div className="min-h-screen bg-[#0b0c10] text-[#f1f1f5] flex flex-col selection:bg-amber-400 selection:text-black">
-      {/* Header is shown on home and results */}
       {currentView !== 'exam' && (
         <Header
           currentView={currentView}
@@ -81,12 +92,13 @@ export default function App() {
         />
       )}
 
-      {/* Main Content Area */}
       <div className="flex-1">
         {currentView === 'home' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
             <LandingHero
-              onStartFullExam={handleStartFullExam}
+              onStartFullExam={() => handleStartExamSet('all')}
+              onStartTierExam={handleStartExamSet}
+              onStartSubjectExam={handleStartSubjectExam}
               onOpenDrillMode={() => setIsDrillModalOpen(true)}
             />
           </div>
@@ -98,7 +110,7 @@ export default function App() {
             activeSubtests={activeSubtests}
             onFinishExam={handleFinishExam}
             onExitExam={handleExitExam}
-            isDrillMode={examMode === 'drill'}
+            isDrillMode={examMode !== 'full'}
           />
         )}
 
@@ -112,10 +124,8 @@ export default function App() {
         )}
       </div>
 
-      {/* Footer is shown on home and results */}
       {currentView !== 'exam' && <Footer />}
 
-      {/* Practice Drill Modal */}
       <PracticeDrillModal
         isOpen={isDrillModalOpen}
         onClose={() => setIsDrillModalOpen(false)}
