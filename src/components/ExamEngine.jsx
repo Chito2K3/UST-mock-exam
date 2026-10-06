@@ -15,6 +15,8 @@ import {
   ShieldAlert,
   RotateCcw,
   Check,
+  Lock,
+  Info,
 } from 'lucide-react';
 import MathRenderer from './MathRenderer';
 import ScratchpadModal from './ScratchpadModal';
@@ -67,6 +69,20 @@ export default function ExamEngine({
   // Modals
   const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
   const [showSectionSubmitConfirm, setShowSectionSubmitConfirm] = useState(false);
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+
+  // Calculate Halfway thresholds and status
+  const totalExamQuestionsCount = questions.length;
+  const totalAnsweredAcrossExam = Object.keys(userAnswers).filter((id) =>
+    questions.some((q) => q.id === id)
+  ).length;
+  const halfwayThreshold = Math.ceil(totalExamQuestionsCount / 2);
+  const isHalfwayBySection =
+    activeSubtests.length > 1 && currentSubtestIndex >= Math.ceil(activeSubtests.length / 2);
+  const isHalfwayByAnswers = totalAnsweredAcrossExam >= halfwayThreshold;
+  const isPastHalfway = isHalfwayBySection || isHalfwayByAnswers;
+  const isNearingHalfway =
+    !isPastHalfway && totalAnsweredAcrossExam >= Math.floor(halfwayThreshold * 0.8);
 
   // Synchronize localStorage
   useEffect(() => {
@@ -84,6 +100,8 @@ export default function ExamEngine({
   }, [currentSubtestIndex, currentSubtestMeta]);
 
   useEffect(() => {
+    if (showRestartConfirm) return;
+
     const timer = setInterval(() => {
       setSectionTimeRemaining((prev) => {
         if (prev <= 1) {
@@ -99,7 +117,7 @@ export default function ExamEngine({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentSubtestIndex]);
+  }, [currentSubtestIndex, showRestartConfirm]);
 
   // Reset pacing timer when question changes
   useEffect(() => {
@@ -109,7 +127,7 @@ export default function ExamEngine({
   // Keyboard navigation shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (isScratchpadOpen || showSectionSubmitConfirm) return;
+      if (isScratchpadOpen || showSectionSubmitConfirm || showRestartConfirm) return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
       if (e.key === 'ArrowRight' || e.key === 'Enter') {
@@ -129,7 +147,7 @@ export default function ExamEngine({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentQuestionIndex, subtestQuestions.length, isScratchpadOpen, showSectionSubmitConfirm, currentQuestion]);
+  }, [currentQuestionIndex, subtestQuestions.length, isScratchpadOpen, showSectionSubmitConfirm, showRestartConfirm, currentQuestion]);
 
   const handleSelectOption = (optionId) => {
     if (!currentQuestion) return;
@@ -193,6 +211,27 @@ export default function ExamEngine({
       flaggedQuestions,
       totalTimeSeconds: totalTimeSpent,
     });
+  };
+
+  // Restart Examination (Permitted only before halfway point)
+  const handleRestartExam = () => {
+    try {
+      localStorage.removeItem('ustet_user_answers');
+      localStorage.removeItem('ustet_flagged');
+    } catch {
+      // Ignore
+    }
+
+    setUserAnswers({});
+    setFlaggedQuestions({});
+    setCurrentSubtestIndex(0);
+    setCurrentQuestionIndex(0);
+    const firstSubtestKey = activeSubtests[0];
+    const firstSubtestMeta = SUBTEST_METADATA[firstSubtestKey];
+    setSectionTimeRemaining((firstSubtestMeta?.defaultDurationMinutes || 15) * 60);
+    setQuestionPaceSeconds(0);
+    setTotalTimeSpent(0);
+    setShowRestartConfirm(false);
   };
 
   // Formatting helpers
@@ -265,6 +304,61 @@ export default function ExamEngine({
               <PenTool className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Scratchpad</span>
             </button>
+
+            {/* Restart Button with Pre-Click Halfway Rule Notification */}
+            <div className="relative group">
+              <button
+                onClick={() => {
+                  if (!isPastHalfway) {
+                    setShowRestartConfirm(true);
+                  }
+                }}
+                disabled={isPastHalfway}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+                  isPastHalfway
+                    ? 'bg-gray-800/30 text-gray-500 border border-gray-800 cursor-not-allowed opacity-60'
+                    : isNearingHalfway
+                    ? 'bg-amber-950/60 hover:bg-amber-900/70 border border-amber-500 text-amber-300 shadow-sm shadow-amber-500/20'
+                    : 'bg-[#1e2230] hover:bg-red-950/40 border border-gray-700 hover:border-red-500/50 text-gray-300 hover:text-red-300'
+                }`}
+                aria-label="Restart Examination"
+              >
+                {isPastHalfway ? (
+                  <Lock className="w-3.5 h-3.5 text-gray-500" />
+                ) : (
+                  <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                )}
+                <span className="hidden sm:inline">
+                  {isPastHalfway ? 'Restart Locked' : 'Restart Test'}
+                </span>
+                {isNearingHalfway && !isPastHalfway && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                )}
+              </button>
+
+              {/* Pre-Click Notification Tooltip Popup */}
+              <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-[#151724] border border-amber-500/40 rounded-xl shadow-2xl text-[11px] text-gray-300 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <div className="font-bold text-amber-400 flex items-center gap-1.5 mb-1">
+                  <Info className="w-3.5 h-3.5" />
+                  Halfway Restart Rule
+                </div>
+                <p className="leading-relaxed text-gray-300">
+                  You can restart the test and reset the clock only during the <strong>first half</strong> (Parts 1–2 or under 50% answered).
+                </p>
+                <div className="mt-2 pt-2 border-t border-gray-800 flex items-center justify-between text-[10px] font-mono">
+                  <span className="text-gray-400">Status:</span>
+                  {isPastHalfway ? (
+                    <span className="text-red-400 font-bold flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Locked (&gt;50%)
+                    </span>
+                  ) : (
+                    <span className="text-emerald-400 font-bold">
+                      ✓ Available ({totalAnsweredAcrossExam}/{halfwayThreshold} items)
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {/* Section Countdown Timer */}
             <div
@@ -527,12 +621,34 @@ export default function ExamEngine({
               </div>
             </div>
 
-            {/* Section Lock Warning */}
-            <div className="mt-5 p-3 rounded-xl bg-amber-950/30 border border-amber-700/40 text-[11px] text-amber-300 flex items-start gap-2">
-              <ShieldAlert className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
-              <span>
-                <strong>USTET Protocol:</strong> Submitting or letting time expire locks this section permanently. You cannot return.
-              </span>
+            {/* Section Lock & Halfway Rule Notice */}
+            <div className="mt-5 p-3 rounded-xl bg-amber-950/30 border border-amber-700/40 text-[11px] text-amber-300 flex flex-col gap-2.5">
+              <div className="flex items-start gap-2">
+                <ShieldAlert className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+                <span>
+                  <strong>Strict Section Locking:</strong> Answers are permanently sealed upon advancing or time expiry.
+                </span>
+              </div>
+              <div className="flex items-start gap-2 pt-2 border-t border-amber-800/40 text-gray-300">
+                {isPastHalfway ? (
+                  <Lock className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
+                ) : (
+                  <RotateCcw className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+                )}
+                <div>
+                  <strong className="text-amber-300">Halfway Restart Policy:</strong> Resetting the mock test & clock is permitted <em>only</em> during the first half (Parts 1–2 / &lt;{halfwayThreshold} answered). Once halfway is crossed, restart is permanently locked.
+                  <div className="mt-1 text-[10px] font-mono">
+                    Eligibility:{' '}
+                    {isPastHalfway ? (
+                      <span className="text-red-400 font-bold">🔒 Locked (Past 50%)</span>
+                    ) : (
+                      <span className="text-emerald-400 font-bold">
+                        ✓ Active ({totalAnsweredAcrossExam}/{halfwayThreshold} answered)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Submit Section Button */}
@@ -587,6 +703,55 @@ export default function ExamEngine({
                 className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition shadow-lg shadow-amber-500/20"
               >
                 Confirm Submission
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Restarting Mock Exam & Resetting Clock */}
+      {showRestartConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#141622] border border-amber-500/50 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
+              <RotateCcw className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-bold text-white">
+                Restart Mock Exam & Reset Clock?
+              </h3>
+              <p className="text-xs text-gray-300">
+                This will reset your examination progress, clear all recorded answers, restore section timers, and return to Question 1 of Part 1.
+              </p>
+              
+              <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-700/50 text-[11px] text-amber-200 text-left space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-amber-400">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Halfway Rule Reminder:
+                </div>
+                <p>
+                  You are currently eligible to restart ({totalAnsweredAcrossExam} of {halfwayThreshold} answers allowed before lock). Once you reach Part 3 or exceed 50% answers, restart will be permanently sealed.
+                </p>
+              </div>
+
+              <p className="text-[11px] text-gray-400 pt-2 border-t border-gray-800">
+                Exam timer is currently paused while this dialog is open.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={() => setShowRestartConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-[#202436] hover:bg-[#2b3048] text-gray-300 text-xs font-semibold transition"
+              >
+                Resume Current Exam
+              </button>
+              <button
+                onClick={handleRestartExam}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition shadow-lg shadow-red-600/30"
+              >
+                Confirm & Restart
               </button>
             </div>
           </div>
