@@ -6,7 +6,17 @@ import ExamEngine from './components/ExamEngine';
 import ResultAnalytics from './components/ResultAnalytics';
 import PracticeDrillModal from './components/PracticeDrillModal';
 import ExamStartModal from './components/ExamStartModal';
+import ResumeExamModal from './components/ResumeExamModal';
 import { MOCK_QUESTIONS, SUBTEST_METADATA } from './data/mockQuestions';
+import {
+  loadActiveSession,
+  clearActiveSession,
+  hasActiveSession,
+} from './utils/sessionStorage';
+import {
+  shuffleQuestionsBySubtest,
+  generateQuestionSet,
+} from './utils/randomizer';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'exam' | 'results'
@@ -22,46 +32,111 @@ export default function App() {
   const [isDrillModalOpen, setIsDrillModalOpen] = useState(false);
   const [pendingExam, setPendingExam] = useState(null);
 
-  const clearSavedExamProgress = () => {
-    try {
-      localStorage.removeItem('ustet_user_answers');
-      localStorage.removeItem('ustet_flagged');
-    } catch {
-      // Ignore
-    }
+  // Session Persistence State
+  const [savedSession, setSavedSession] = useState(() => loadActiveSession());
+  const [isResumeModalOpen, setIsResumeModalOpen] = useState(() => hasActiveSession());
+  const [initialSessionState, setInitialSessionState] = useState(null);
+  const [examMetadata, setExamMetadata] = useState({});
+
+
+  // Resume In-Progress Exam Session
+  const handleResumeSession = () => {
+    const session = savedSession || loadActiveSession();
+    if (!session) return;
+
+    setActiveQuestions(session.activeQuestions);
+    setActiveSubtests(session.activeSubtests);
+    setExamMode(session.examMode || 'full');
+    setExamMetadata({
+      examMode: session.examMode || 'full',
+      setName: session.setName || 'USTET Simulation',
+    });
+    setInitialSessionState(session);
+    setExamResults(null);
+    setIsResumeModalOpen(false);
+    setCurrentView('exam');
   };
 
-  // Request Full 4-Part Exam or Tiered Complete Exam Set
-  const handleRequestExamSet = (difficultyTier = 'all') => {
-    let filtered = [...MOCK_QUESTIONS];
+  // Discard Saved Session
+  const handleDiscardSession = () => {
+    clearActiveSession();
+    setSavedSession(null);
+    setIsResumeModalOpen(false);
+    setInitialSessionState(null);
+  };
+
+  // Request Full 4-Part Simulation or Modular Sets
+  const handleRequestExamSet = (difficultyTier = 'all', chosenSet = 'full') => {
+    let basePool = [...MOCK_QUESTIONS];
     if (difficultyTier !== 'all') {
-      filtered = filtered.filter((q) => q.difficulty === difficultyTier);
+      basePool = basePool.filter((q) => q.difficulty === difficultyTier);
     }
     const isFull = difficultyTier === 'all';
 
+    let titleText = 'USTET Full 4-Part Simulation';
+    let badgeText = 'Official Simulation';
+    let subtitleText = 'All 4 standard sections with authentic timing, question shuffling, and section locking';
+
+    if (chosenSet === 'set_a') {
+      titleText = 'USTET Balanced Mock Set A';
+      badgeText = 'Curated Set A';
+      subtitleText = '135 authentic items balanced across Mental Ability, English, Math, and Science';
+    } else if (chosenSet === 'set_b') {
+      titleText = 'USTET Balanced Mock Set B';
+      badgeText = 'Curated Set B';
+      subtitleText = '135 authentic items balanced across all 4 USTET subject domains';
+    } else if (chosenSet === 'express') {
+      titleText = 'USTET Express Diagnostic Set';
+      badgeText = 'Express Set';
+      subtitleText = '60 high-yield questions (15 items per subtest) for quick assessment';
+    } else if (difficultyTier !== 'all') {
+      titleText = `USTET Complete ${difficultyTier} Mock Set`;
+      badgeText = `${difficultyTier} Tier Set`;
+      subtitleText = `Targeted difficulty set covering all 4 standard USTET examination areas`;
+    }
+
     setPendingExam({
-      title: isFull
-        ? 'USTET Full 4-Part Simulation'
-        : `USTET Complete ${difficultyTier} Mock Set`,
-      badge: isFull ? 'Official Simulation' : `${difficultyTier} Tier Set`,
-      subtitle: isFull
-        ? 'All 4 standard sections with authentic timing and sequential section locking'
-        : `Targeted difficulty set covering all 4 standard USTET examination areas`,
-      itemCount: filtered.length,
+      title: titleText,
+      badge: badgeText,
+      subtitle: subtitleText,
+      itemCount: chosenSet === 'express' ? 60 : chosenSet === 'set_a' || chosenSet === 'set_b' ? 135 : basePool.length,
       partsCount: 4,
-      durationMinutes: 165,
+      durationMinutes: chosenSet === 'express' ? 45 : chosenSet === 'set_a' || chosenSet === 'set_b' ? 90 : 165,
+      allowSetSelection: isFull,
       subjects: [
-        'Part 1: Mental Ability (30m)',
-        'Part 2: English Proficiency (45m)',
-        'Part 3: Mathematics (45m)',
-        'Part 4: Science (45m)',
+        'Part 1: Mental Ability',
+        'Part 2: English Proficiency',
+        'Part 3: Mathematics (No Calculator)',
+        'Part 4: Science',
       ],
       calculatorAllowed: false,
-      onConfirm: () => {
-        clearSavedExamProgress();
-        setActiveQuestions(filtered);
-        setActiveSubtests(['mental_ability', 'english', 'mathematics', 'science']);
-        setExamMode(isFull ? 'full' : `tier-${difficultyTier}`);
+      onConfirm: ({ shuffleQuestions = true, randomizeChoices = true, selectedSet = chosenSet } = {}) => {
+        clearActiveSession();
+        setSavedSession(null);
+        setInitialSessionState(null);
+
+        let preparedQuestions;
+        if (isFull) {
+          preparedQuestions = generateQuestionSet(basePool, {
+            setId: selectedSet,
+            shuffleQuestions,
+            randomizeChoices,
+          });
+        } else {
+          preparedQuestions = shuffleQuestionsBySubtest(basePool, {
+            shuffleQuestions,
+            randomizeChoices,
+          });
+        }
+
+        const subs = ['mental_ability', 'english', 'mathematics', 'science'];
+        setActiveQuestions(preparedQuestions);
+        setActiveSubtests(subs);
+        setExamMode(isFull ? selectedSet : `tier-${difficultyTier}`);
+        setExamMetadata({
+          examMode: isFull ? selectedSet : `tier-${difficultyTier}`,
+          setName: titleText,
+        });
         setExamResults(null);
         setCurrentView('exam');
         setPendingExam(null);
@@ -81,13 +156,26 @@ export default function App() {
       itemCount: filtered.length,
       partsCount: 1,
       durationMinutes: meta?.defaultDurationMinutes || 45,
+      allowSetSelection: false,
       subjects: [`${meta?.title || 'Subject'} (${filtered.length} Items)`],
       calculatorAllowed: false,
-      onConfirm: () => {
-        clearSavedExamProgress();
-        setActiveQuestions(filtered);
+      onConfirm: ({ shuffleQuestions = true, randomizeChoices = true } = {}) => {
+        clearActiveSession();
+        setSavedSession(null);
+        setInitialSessionState(null);
+
+        const preparedQuestions = shuffleQuestionsBySubtest(filtered, {
+          shuffleQuestions,
+          randomizeChoices,
+        });
+
+        setActiveQuestions(preparedQuestions);
         setActiveSubtests([subtestKey]);
         setExamMode('subject');
+        setExamMetadata({
+          examMode: 'subject',
+          setName: `${meta?.title} Section Exam`,
+        });
         setExamResults(null);
         setCurrentView('exam');
         setPendingExam(null);
@@ -96,7 +184,13 @@ export default function App() {
   };
 
   // Request Targeted Custom Drill
-  const handleRequestDrill = ({ subtest, difficulty }) => {
+  const handleRequestDrill = ({
+    subtest,
+    difficulty,
+    itemLimit = 'all',
+    shuffleQuestions = true,
+    randomizeChoices = true,
+  }) => {
     let filtered = [...MOCK_QUESTIONS];
 
     if (subtest !== 'all') {
@@ -110,7 +204,19 @@ export default function App() {
       filtered = MOCK_QUESTIONS.filter((q) => (subtest !== 'all' ? q.subtest === subtest : true));
     }
 
-    const availableSubtests = Array.from(new Set(filtered.map((q) => q.subtest)));
+    let prepared = shuffleQuestionsBySubtest(filtered, {
+      shuffleQuestions,
+      randomizeChoices,
+    });
+
+    if (itemLimit !== 'all') {
+      const limit = parseInt(itemLimit, 10);
+      if (!isNaN(limit) && limit > 0 && limit < prepared.length) {
+        prepared = prepared.slice(0, limit);
+      }
+    }
+
+    const availableSubtests = Array.from(new Set(prepared.map((q) => q.subtest)));
     const activeSubs = availableSubtests.length > 0 ? availableSubtests : ['mental_ability'];
     const totalMinutes = activeSubs.reduce(
       (acc, k) => acc + (SUBTEST_METADATA[k]?.defaultDurationMinutes || 15),
@@ -124,21 +230,29 @@ export default function App() {
         subtest === 'all'
           ? 'Comprehensive Multi-Subject Drill Session'
           : `${SUBTEST_METADATA[subtest]?.title || 'Subject'} Drill Session`,
-      itemCount: filtered.length,
+      itemCount: prepared.length,
       partsCount: activeSubs.length,
       durationMinutes: totalMinutes,
+      allowSetSelection: false,
       subjects: activeSubs.map(
         (k) =>
           `${SUBTEST_METADATA[k]?.title || k} (${
-            filtered.filter((q) => q.subtest === k).length
+            prepared.filter((q) => q.subtest === k).length
           } items)`
       ),
       calculatorAllowed: false,
       onConfirm: () => {
-        clearSavedExamProgress();
-        setActiveQuestions(filtered);
+        clearActiveSession();
+        setSavedSession(null);
+        setInitialSessionState(null);
+
+        setActiveQuestions(prepared);
         setActiveSubtests(activeSubs);
         setExamMode('drill');
+        setExamMetadata({
+          examMode: 'drill',
+          setName: 'Targeted Practice Drill',
+        });
         setExamResults(null);
         setCurrentView('exam');
         setPendingExam(null);
@@ -147,19 +261,21 @@ export default function App() {
   };
 
   const handleFinishExam = (results) => {
+    clearActiveSession();
+    setSavedSession(null);
+    setInitialSessionState(null);
     setExamResults(results);
     setCurrentView('results');
   };
 
   const handleRetakeExam = () => {
-    handleRequestExamSet('all');
+    handleRequestExamSet('all', 'full');
   };
 
   const handleExitExam = () => {
-    if (window.confirm('Are you sure you want to exit the exam? Your current progress will be reset.')) {
-      clearSavedExamProgress();
-      setCurrentView('home');
-    }
+    const active = loadActiveSession();
+    setSavedSession(active);
+    setCurrentView('home');
   };
 
   return (
@@ -176,10 +292,14 @@ export default function App() {
         {currentView === 'home' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
             <LandingHero
-              onStartFullExam={() => handleRequestExamSet('all')}
+              onStartFullExam={() => handleRequestExamSet('all', 'full')}
+              onStartSetExam={(setId) => handleRequestExamSet('all', setId)}
               onStartTierExam={handleRequestExamSet}
               onStartSubjectExam={handleRequestSubjectExam}
               onOpenDrillMode={() => setIsDrillModalOpen(true)}
+              savedSession={savedSession}
+              onResumeSavedSession={handleResumeSession}
+              onDiscardSavedSession={handleDiscardSession}
             />
           </div>
         )}
@@ -190,6 +310,8 @@ export default function App() {
             activeSubtests={activeSubtests}
             onFinishExam={handleFinishExam}
             onExitExam={handleExitExam}
+            initialSessionState={initialSessionState}
+            examMetadata={examMetadata}
           />
         )}
 
@@ -217,6 +339,14 @@ export default function App() {
         config={pendingExam}
         onConfirm={pendingExam?.onConfirm}
         onClose={() => setPendingExam(null)}
+      />
+
+      <ResumeExamModal
+        isOpen={isResumeModalOpen && currentView === 'home'}
+        session={savedSession}
+        onResume={handleResumeSession}
+        onDismiss={() => setIsResumeModalOpen(false)}
+        onDiscard={handleDiscardSession}
       />
     </div>
   );

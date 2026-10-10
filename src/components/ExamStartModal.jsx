@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Play,
@@ -8,19 +8,23 @@ import {
   AlertTriangle,
   Lock,
   Layers,
+  Shuffle,
 } from 'lucide-react';
 import ustSeal from '../assets/ust-seal.jpg';
 
 export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
+  const [shuffleQuestions, setShuffleQuestions] = useState(true);
+  const [randomizeChoices, setRandomizeChoices] = useState(true);
+  const [selectedSet, setSelectedSet] = useState('full');
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'Enter') onConfirm();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onConfirm, onClose]);
+  }, [isOpen, onClose]);
 
   if (!isOpen || !config) return null;
 
@@ -33,11 +37,36 @@ export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
     durationMinutes = 0,
     subjects = [],
     calculatorAllowed = false,
+    allowSetSelection = false,
   } = config;
 
+  const handleStartExam = () => {
+    onConfirm({
+      shuffleQuestions,
+      randomizeChoices,
+      selectedSet,
+    });
+  };
+
+  // Compute displayed items if set changes
+  let displayItemCount = itemCount;
+  let displayDuration = durationMinutes;
+  if (allowSetSelection) {
+    if (selectedSet === 'set_a' || selectedSet === 'set_b') {
+      displayItemCount = 135;
+      displayDuration = 90;
+    } else if (selectedSet === 'express') {
+      displayItemCount = 60;
+      displayDuration = 45;
+    } else {
+      displayItemCount = 270;
+      displayDuration = 165;
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#141622] border border-amber-500/50 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
+      <div className="bg-[#141622] border border-amber-500/50 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl space-y-5 relative overflow-hidden my-auto">
         {/* Decorative Gold Glow */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
 
@@ -75,6 +104,37 @@ export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
           </button>
         </div>
 
+        {/* Optional Question Set Selector */}
+        {allowSetSelection && (
+          <div className="space-y-2 relative z-10">
+            <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+              Choose Question Set:
+            </label>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                { id: 'full', label: 'Full 270 Items', desc: '165 mins • All Items' },
+                { id: 'set_a', label: 'Balanced Set A', desc: '90 mins • 135 Items' },
+                { id: 'set_b', label: 'Balanced Set B', desc: '90 mins • 135 Items' },
+                { id: 'express', label: 'Express Diagnostic', desc: '45 mins • 60 Items' },
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSelectedSet(s.id)}
+                  className={`p-2.5 rounded-xl border text-left transition ${
+                    selectedSet === s.id
+                      ? 'bg-amber-500/15 border-amber-500 text-amber-200'
+                      : 'bg-[#191c2b] border-gray-800 text-gray-400 hover:border-gray-700'
+                  }`}
+                >
+                  <span className="block text-xs font-bold text-white">{s.label}</span>
+                  <span className="block text-[10px] text-gray-400 mt-0.5">{s.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Exam Parameter Highlights */}
         <div className="grid grid-cols-3 gap-3 relative z-10">
           <div className="bg-[#1a1d2b] border border-gray-800 rounded-2xl p-3 text-center">
@@ -82,7 +142,7 @@ export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
               <FileText className="w-3.5 h-3.5 text-amber-400" />
               <span>Questions</span>
             </div>
-            <span className="text-lg font-black text-white">{itemCount}</span>
+            <span className="text-lg font-black text-white">{displayItemCount}</span>
             <span className="block text-[10px] text-gray-400">Total Items</span>
           </div>
 
@@ -91,7 +151,7 @@ export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
               <Clock className="w-3.5 h-3.5 text-amber-400" />
               <span>Allotted Time</span>
             </div>
-            <span className="text-lg font-black text-amber-300">{durationMinutes}m</span>
+            <span className="text-lg font-black text-amber-300">{displayDuration}m</span>
             <span className="block text-[10px] text-gray-400">{partsCount > 1 ? `${partsCount} Parts Combined` : 'Single Section'}</span>
           </div>
 
@@ -102,6 +162,35 @@ export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
             </div>
             <span className="text-lg font-black text-emerald-400">{partsCount}</span>
             <span className="block text-[10px] text-gray-400">{partsCount === 1 ? 'Subtest' : 'Subtests'}</span>
+          </div>
+        </div>
+
+        {/* Randomization Options Box */}
+        <div className="p-3.5 rounded-2xl bg-[#191c2b] border border-gray-800 space-y-2 relative z-10">
+          <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wide">
+            <Shuffle className="w-3.5 h-3.5" />
+            Randomization Settings
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <label className="flex items-center gap-2.5 p-2 rounded-xl bg-[#141622] border border-gray-800 hover:border-gray-700 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={shuffleQuestions}
+                onChange={(e) => setShuffleQuestions(e.target.checked)}
+                className="w-4 h-4 text-amber-500 rounded bg-gray-900 border-gray-700 focus:ring-amber-400 focus:ring-offset-gray-900 cursor-pointer"
+              />
+              <span className="text-gray-200 font-medium">Randomize Question Order</span>
+            </label>
+
+            <label className="flex items-center gap-2.5 p-2 rounded-xl bg-[#141622] border border-gray-800 hover:border-gray-700 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={randomizeChoices}
+                onChange={(e) => setRandomizeChoices(e.target.checked)}
+                className="w-4 h-4 text-amber-500 rounded bg-gray-900 border-gray-700 focus:ring-amber-400 focus:ring-offset-gray-900 cursor-pointer"
+              />
+              <span className="text-gray-200 font-medium">Randomize Choices (A–D)</span>
+            </label>
           </div>
         </div>
 
@@ -125,17 +214,17 @@ export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
         )}
 
         {/* Mandatory Rules Notification Box */}
-        <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-600/40 text-xs text-amber-200 space-y-2.5 relative z-10">
+        <div className="p-3.5 rounded-2xl bg-amber-950/30 border border-amber-600/40 text-xs text-amber-200 space-y-2 relative z-10">
           <div className="flex items-center gap-2 font-bold text-amber-400 text-xs uppercase tracking-wide">
             <ShieldAlert className="w-4 h-4" />
             Important Examination Protocols
           </div>
 
-          <ul className="space-y-2 text-[11px] leading-relaxed text-amber-100/90 pl-1">
+          <ul className="space-y-1.5 text-[11px] leading-relaxed text-amber-100/90 pl-1">
             <li className="flex items-start gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0"></span>
               <span>
-                <strong>Timer starts immediately:</strong> The countdown clock begins the instant you click &apos;Start Examination&apos;.
+                <strong>Auto-Save Active:</strong> You can safely pause and resume this exam anytime from this computer.
               </span>
             </li>
             <li className="flex items-start gap-2">
@@ -147,14 +236,14 @@ export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
             <li className="flex items-start gap-2">
               <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
               <span>
-                <strong>Calculators Prohibited:</strong> {calculatorAllowed ? 'Allowed' : 'Strictly forbidden. A virtual digital scratchpad is provided for handwriting arithmetic.'}
+                <strong>Calculators Prohibited:</strong> {calculatorAllowed ? 'Allowed' : 'Strictly forbidden. A virtual digital scratchpad is provided.'}
               </span>
             </li>
           </ul>
         </div>
 
         {/* Modal Action Controls */}
-        <div className="flex items-center gap-3 pt-2 relative z-10">
+        <div className="flex items-center gap-3 pt-1 relative z-10">
           <button
             onClick={onClose}
             className="flex-1 py-3 rounded-xl bg-[#1d202e] hover:bg-[#272b3e] text-gray-300 hover:text-white text-xs font-bold transition border border-gray-700/60 cursor-pointer"
@@ -163,7 +252,7 @@ export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
           </button>
 
           <button
-            onClick={onConfirm}
+            onClick={handleStartExam}
             className="flex-1 py-3 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs rounded-xl shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition cursor-pointer transform hover:-translate-y-0.5"
           >
             <Play className="w-4 h-4 fill-current" />

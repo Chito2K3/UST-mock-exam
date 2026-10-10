@@ -7,20 +7,92 @@ import {
   ArrowRight,
   Play,
   Zap,
+  Trash2,
 } from 'lucide-react';
 import { UST_PROGRAMS } from '../data/programs';
 import { SUBTEST_METADATA } from '../data/mockQuestions';
 
 export default function LandingHero({
   onStartFullExam,
+  onStartSetExam,
   onStartTierExam,
   onStartSubjectExam,
   onOpenDrillMode,
+  savedSession,
+  onResumeSavedSession,
+  onDiscardSavedSession,
 }) {
   const subtestList = Object.values(SUBTEST_METADATA);
 
+  const formatTime = (secs) => {
+    const mins = Math.floor((secs || 0) / 60);
+    const rem = (secs || 0) % 60;
+    return `${mins}m ${rem < 10 ? '0' : ''}${rem}s`;
+  };
+
+  const currentSubtestKey = savedSession?.activeSubtests?.[savedSession?.currentSubtestIndex] || 'mental_ability';
+  const savedMeta = SUBTEST_METADATA[currentSubtestKey];
+
   return (
-    <div className="space-y-16 py-6 animate-fade-in">
+    <div className="space-y-12 py-6 animate-fade-in">
+      {/* Active Session Persistent Banner on Home */}
+      {savedSession && (
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-950/70 via-[#1b1e2e] to-[#12141f] border-2 border-amber-500/60 p-6 sm:p-7 shadow-2xl animate-fade-in">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold uppercase tracking-widest">
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                In-Progress Examination Found
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                Resume {savedSession.setName || 'USTET Simulation'}
+              </h2>
+
+              <p className="text-gray-300 text-xs sm:text-sm max-w-xl leading-relaxed">
+                You were working on <strong className="text-amber-400">Part {savedSession.currentSubtestIndex + 1}: {savedMeta?.title}</strong> (Item {(savedSession.currentQuestionIndex || 0) + 1} of {savedSession.activeQuestions.filter(q => q.subtest === currentSubtestKey).length}). All answers and remaining timers are safely preserved.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-4 text-xs font-mono pt-1 text-gray-300">
+                <span className="flex items-center gap-1.5 bg-[#12141f] px-3 py-1 rounded-lg border border-gray-800">
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                  Section Time Remaining: <strong className="text-amber-300">{formatTime(savedSession.sectionTimeRemaining)}</strong>
+                </span>
+                <span className="flex items-center gap-1.5 bg-[#12141f] px-3 py-1 rounded-lg border border-gray-800">
+                  <span>Total Answered:</span>
+                  <strong className="text-emerald-400">{Object.keys(savedSession.userAnswers || {}).length} / {savedSession.activeQuestions.length}</strong>
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+              <button
+                onClick={onResumeSavedSession}
+                className="px-6 py-3.5 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-sm rounded-xl shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition transform hover:-translate-y-0.5 cursor-pointer"
+              >
+                <Play className="w-4 h-4 fill-black" />
+                Resume Exam Now
+              </button>
+
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to discard this saved exam? Your answers and countdown progress will be reset permanently.')) {
+                    onDiscardSavedSession();
+                  }
+                }}
+                className="px-4 py-3.5 bg-red-950/40 hover:bg-red-900/60 border border-red-700/60 text-red-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
+                title="Discard session and start fresh"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                Discard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Banner */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#181a26] via-[#12131d] to-[#0c0d14] border border-amber-500/30 p-8 sm:p-14 shadow-2xl">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
@@ -32,11 +104,11 @@ export default function LandingHero({
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight">
-            Master the <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500">USTET</span> With Complete Mock Sets
+            Master the <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500">USTET</span> With Randomized Mock Sets
           </h1>
 
           <p className="text-gray-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-            Experience authentic USTET testing with full multi-item sections, strict sequential section locking, no-calculator rules in Mathematics, and instant Stanine cutoff evaluation.
+            Experience authentic USTET testing with full multi-item sections, randomized question & choice shuffling, strict sequential section locking, no-calculator rules in Mathematics, and session auto-saving.
           </p>
 
           {/* Primary Action Button */}
@@ -45,48 +117,81 @@ export default function LandingHero({
               onClick={onStartFullExam}
               className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-base rounded-2xl shadow-xl shadow-amber-500/25 flex items-center justify-center gap-3 mx-auto transition transform hover:-translate-y-0.5 cursor-pointer"
             >
-              <span>Begin Full 4-Part USTET Exam (All Items)</span>
+              <span>Begin Full 4-Part Simulation (All 270 Items)</span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Dedicated Tier Exam Buttons */}
-          <div className="pt-4 border-t border-gray-800/80">
-            <span className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-3">
-              Or Choose a Complete Difficulty Mock Set:
-            </span>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <button
-                onClick={() => onStartTierExam('EASY')}
-                className="px-5 py-2.5 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/50 text-emerald-300 font-bold text-xs rounded-xl flex items-center gap-2 transition"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                Complete EASY Mock Set (All 4 Subjects)
-              </button>
+          {/* Modular Sets & Difficulty Tier Buttons */}
+          <div className="pt-4 border-t border-gray-800/80 space-y-4">
+            <div>
+              <span className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-2.5">
+                Select a Curated Question Set:
+              </span>
+              <div className="flex flex-wrap items-center justify-center gap-2.5">
+                <button
+                  onClick={() => onStartSetExam('set_a')}
+                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                >
+                  <Award className="w-3.5 h-3.5 text-amber-400" />
+                  Balanced Mock Set A (135 Items • 90m)
+                </button>
 
-              <button
-                onClick={() => onStartTierExam('MEDIUM')}
-                className="px-5 py-2.5 bg-amber-950/60 hover:bg-amber-900/80 border border-amber-500/50 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-2 transition"
-              >
-                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                Complete MEDIUM Mock Set (All 4 Subjects)
-              </button>
+                <button
+                  onClick={() => onStartSetExam('set_b')}
+                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                >
+                  <Award className="w-3.5 h-3.5 text-amber-400" />
+                  Balanced Mock Set B (135 Items • 90m)
+                </button>
 
-              <button
-                onClick={() => onStartTierExam('HARD')}
-                className="px-5 py-2.5 bg-red-950/60 hover:bg-red-900/80 border border-red-500/50 text-red-300 font-bold text-xs rounded-xl flex items-center gap-2 transition"
-              >
-                <span className="w-2 h-2 rounded-full bg-red-400"></span>
-                Complete HARD Mock Set (All 4 Subjects)
-              </button>
+                <button
+                  onClick={() => onStartSetExam('express')}
+                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  Express Diagnostic Set (60 Items • 45m)
+                </button>
+              </div>
+            </div>
 
-              <button
-                onClick={onOpenDrillMode}
-                className="px-5 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-2 transition"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                Custom Practice Drill
-              </button>
+            <div>
+              <span className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-2.5">
+                Or Filter by Difficulty / Custom Practice:
+              </span>
+              <div className="flex flex-wrap items-center justify-center gap-2.5">
+                <button
+                  onClick={() => onStartTierExam('EASY')}
+                  className="px-4 py-2 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/50 text-emerald-300 font-bold text-xs rounded-xl flex items-center gap-2 transition"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  EASY Tier Set
+                </button>
+
+                <button
+                  onClick={() => onStartTierExam('MEDIUM')}
+                  className="px-4 py-2 bg-amber-950/60 hover:bg-amber-900/80 border border-amber-500/50 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-2 transition"
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                  MEDIUM Tier Set
+                </button>
+
+                <button
+                  onClick={() => onStartTierExam('HARD')}
+                  className="px-4 py-2 bg-red-950/60 hover:bg-red-900/80 border border-red-500/50 text-red-300 font-bold text-xs rounded-xl flex items-center gap-2 transition"
+                >
+                  <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                  HARD Tier Set
+                </button>
+
+                <button
+                  onClick={onOpenDrillMode}
+                  className="px-4 py-2 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-2 transition"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  Custom Practice Drill
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -99,7 +204,7 @@ export default function LandingHero({
             The 4 USTET Examination Subtests
           </h2>
           <p className="text-xs sm:text-sm text-gray-400">
-            Click on any subtest card below to take a dedicated full-length subject examination:
+            Click on any subtest card below to launch a dedicated full-length subject examination:
           </p>
         </div>
 
@@ -135,7 +240,7 @@ export default function LandingHero({
                     <Play className="w-3 h-3 fill-current" />
                     Take Subject Exam
                   </span>
-                  <span className="text-gray-400 text-[11px]">Easy • Med • Hard</span>
+                  <span className="text-gray-400 text-[11px]">{sub.totalTargetItems} Items</span>
                 </div>
               </div>
             );

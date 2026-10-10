@@ -20,7 +20,11 @@ An authentic, modern web application simulator for the **USTET (University of Sa
    - Built-in canvas drawing and notes scratchpad to perform handwritten calculations and algebra without a physical calculator.
 
 4. **Tiered Question Pool (Easy, Medium, and Hard)**:
-   - Complete with 32 curated items spanning all subtests.
+   - Complete with 270 curated items spanning all 4 authentic subtests:
+     - 70 Mental Ability items
+     - 70 English Proficiency items
+     - 60 Mathematics items
+     - 70 Science items
    - All items contain four choices (A, B, C, D), correct keys, and step-by-step rationales rendered with **KaTeX** mathematical typography.
 
 5. **Post-Exam Review (Strictly Revealed Upon Completion)**:
@@ -39,7 +43,22 @@ An authentic, modern web application simulator for the **USTET (University of Sa
      - **Faculty of Arts & Letters** (Legal Management, Communication)
 
 7. **Targeted Practice / Tier Drill Mode**:
-   - Need focused practice on Hard Math or Medium Science? Launch isolated drill sessions filtered by subject and difficulty.
+   - Need focused practice on Hard Math or Medium Science? Launch isolated drill sessions filtered by subject, difficulty, and question count.
+
+8. **Question & Choice Randomization (Fisher-Yates Algorithm)**:
+   - Shuffles questions within each section while maintaining the authentic 4-part subtest sequence.
+   - Shuffles answer choices (`A`, `B`, `C`, `D`) with automatic key remapping to prevent answer-key memorization across retakes.
+
+9. **Modular Question Sets System**:
+   - **Full 4-Part Bank** (All 270 items • 165 mins)
+   - **Balanced Mock Set A** (135 items • 90 mins)
+   - **Balanced Mock Set B** (135 items • 90 mins)
+   - **Express Diagnostic Set** (60 items • 45 mins)
+
+10. **Full Session Persistence ("Save & Resume Anytime")**:
+    - **Continuous Auto-Save**: Real-time progress and countdown timer saved to `localStorage` every 4 seconds.
+    - **"Save & Pause Session"**: Explicit pause action in the exam header allowing users to safely close their browser or computer and return later.
+    - **Automatic Resume Detection**: On return, displays both a high-priority resume prompt modal and a persistent "Active Simulation In Progress" banner on the home screen restoring exact shuffled questions, choice layouts, question index, recorded answers, flags, and remaining countdown seconds.
 
 ---
 
