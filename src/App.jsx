@@ -18,6 +18,7 @@ import {
   shuffleQuestionsBySubtest,
   generateQuestionSet,
 } from './utils/randomizer';
+import { generateExamSet } from './utils/questionGenerator.js';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'exam' | 'results'
@@ -118,21 +119,17 @@ export default function App() {
         setSavedSession(null);
         setInitialSessionState(null);
 
-        let preparedQuestions;
-        if (isFull) {
-          preparedQuestions = generateQuestionSet(basePool, {
-            setId: selectedSet,
-            shuffleQuestions,
-            randomizeChoices,
-          });
-        } else {
-          preparedQuestions = shuffleQuestionsBySubtest(basePool, {
-            shuffleQuestions,
-            randomizeChoices,
-          });
-        }
+        const examBundle = generateExamSet({
+          scope: 'full',
+          setId: isFull ? selectedSet : 'dynamic',
+          lengthMode: selectedSet === 'express' ? 'express' : selectedSet === 'set_a' || selectedSet === 'set_b' ? 'sprint' : 'standard',
+          shuffleQuestions,
+          randomizeChoices,
+          difficultyTier,
+        });
 
-        const subs = ['mental_ability', 'english', 'mathematics', 'science'];
+        const preparedQuestions = examBundle.questions;
+        const subs = examBundle.activeSubtests;
         setActiveQuestions(preparedQuestions);
         setActiveSubtests(subs);
         setExamMode(isFull ? selectedSet : `tier-${difficultyTier}`);
