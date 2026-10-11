@@ -7,6 +7,7 @@ import ResultAnalytics from './components/ResultAnalytics';
 import PracticeDrillModal from './components/PracticeDrillModal';
 import ExamStartModal from './components/ExamStartModal';
 import ResumeExamModal from './components/ResumeExamModal';
+import QuestionnaireGeneratorModal from './components/QuestionnaireGeneratorModal';
 import { MOCK_QUESTIONS, SUBTEST_METADATA } from './data/mockQuestions';
 import {
   loadActiveSession,
@@ -30,6 +31,8 @@ export default function App() {
   ]);
   const [examResults, setExamResults] = useState(null);
   const [isDrillModalOpen, setIsDrillModalOpen] = useState(false);
+  const [isGeneratorModalOpen, setIsGeneratorModalOpen] = useState(false);
+  const [generatorInitialScope, setGeneratorInitialScope] = useState('full');
   const [pendingExam, setPendingExam] = useState(null);
 
   // Session Persistence State
@@ -268,6 +271,28 @@ export default function App() {
     setCurrentView('results');
   };
 
+  const handleOpenGenerator = (scope = 'full') => {
+    setGeneratorInitialScope(scope);
+    setIsGeneratorModalOpen(true);
+  };
+
+  const handleLaunchGeneratedExam = (examBundle) => {
+    clearActiveSession();
+    setSavedSession(null);
+    setInitialSessionState(null);
+
+    setActiveQuestions(examBundle.questions);
+    setActiveSubtests(examBundle.activeSubtests);
+    setExamMode(examBundle.scope === 'full' ? examBundle.setId : `subject-${examBundle.scope}`);
+    setExamMetadata({
+      examMode: examBundle.scope === 'full' ? examBundle.setId : `subject-${examBundle.scope}`,
+      setName: examBundle.setName || examBundle.title,
+    });
+    setExamResults(null);
+    setIsGeneratorModalOpen(false);
+    setCurrentView('exam');
+  };
+
   const handleRetakeExam = () => {
     handleRequestExamSet('all', 'full');
   };
@@ -285,6 +310,7 @@ export default function App() {
           currentView={currentView}
           onGoHome={() => setCurrentView('home')}
           onOpenDrillMode={() => setIsDrillModalOpen(true)}
+          onOpenGenerator={handleOpenGenerator}
         />
       )}
 
@@ -297,6 +323,7 @@ export default function App() {
               onStartTierExam={handleRequestExamSet}
               onStartSubjectExam={handleRequestSubjectExam}
               onOpenDrillMode={() => setIsDrillModalOpen(true)}
+              onOpenGenerator={handleOpenGenerator}
               savedSession={savedSession}
               onResumeSavedSession={handleResumeSession}
               onDiscardSavedSession={handleDiscardSession}
@@ -332,6 +359,13 @@ export default function App() {
         isOpen={isDrillModalOpen}
         onClose={() => setIsDrillModalOpen(false)}
         onStartDrill={handleRequestDrill}
+      />
+
+      <QuestionnaireGeneratorModal
+        isOpen={isGeneratorModalOpen}
+        initialScope={generatorInitialScope}
+        onClose={() => setIsGeneratorModalOpen(false)}
+        onLaunchExam={handleLaunchGeneratedExam}
       />
 
       <ExamStartModal

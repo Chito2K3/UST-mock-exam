@@ -1,8 +1,8 @@
 import React from 'react';
-import { Zap } from 'lucide-react';
+import { Zap, Sparkles } from 'lucide-react';
 import ustSeal from '../assets/ust-seal.jpg';
 
-export default function Header({ currentView, onGoHome, onOpenDrillMode }) {
+export default function Header({ currentView, onGoHome, onOpenDrillMode, onOpenGenerator }) {
   return (
     <header className="border-b border-gray-800 bg-[#0e1017]/90 backdrop-blur sticky top-0 z-30 px-4 sm:px-8 py-3.5">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -39,9 +39,19 @@ export default function Header({ currentView, onGoHome, onOpenDrillMode }) {
         <div className="flex items-center gap-3">
           {currentView !== 'exam' && (
             <>
+              {onOpenGenerator && (
+                <button
+                  onClick={() => onOpenGenerator('full')}
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-bold transition cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  Generate Set
+                </button>
+              )}
+
               <button
                 onClick={onOpenDrillMode}
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1b1e2b] hover:bg-[#25293d] border border-gray-700/80 text-gray-200 text-xs font-semibold transition"
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1b1e2b] hover:bg-[#25293d] border border-gray-700/80 text-gray-200 text-xs font-semibold transition cursor-pointer"
               >
                 <Zap className="w-3.5 h-3.5 text-amber-400" />
                 Practice Drills

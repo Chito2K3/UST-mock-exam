@@ -1,0 +1,95 @@
+/**
+ * Registry of official USTET Question Sets and Subtest Specifications.
+ * Governs metadata, target item quotas, and timing guidelines.
+ */
+
+export const SET_CATALOG = [
+  {
+    id: 'dynamic',
+    label: 'Dynamic Algorithmic Generator',
+    badge: 'Procedural Balanced Mix',
+    tag: 'RECOMMENDED',
+    description: 'Synthesizes a brand-new, unique exam on the fly with authentic USTET curriculum quotas, balanced difficulty curves, and randomized answer keys.',
+    icon: 'Sparkles',
+    color: '#F59E0B',
+  },
+  {
+    id: 'set_a',
+    label: 'Curated Set A (Official Calibration)',
+    badge: 'Standard Baseline',
+    tag: 'STANDARD',
+    description: 'Authentic 270-item baseline calibration matching official USTET subject distribution, sequential section locking, and standard timing.',
+    icon: 'Award',
+    color: '#EAB308',
+  },
+  {
+    id: 'set_b',
+    label: 'Curated Set B (USTET Challenger)',
+    badge: 'High-Yield Alternative',
+    tag: 'CHALLENGER',
+    description: 'Rigorous alternate question set emphasizing multi-step problem solving, complex reading passages, and analytical reasoning.',
+    icon: 'Flame',
+    color: '#EC4899',
+  },
+  {
+    id: 'express',
+    label: 'Express Diagnostic Sprint',
+    badge: '45-Min Fast Check',
+    tag: 'DIAGNOSTIC',
+    description: '60 high-yield questions (15 items per subtest) designed for quick skill diagnosis, speed training, and pacing benchmark.',
+    icon: 'Zap',
+    color: '#06B6D4',
+  },
+];
+
+export const SUBTEST_SPECS = {
+  mental_ability: {
+    id: 'mental_ability',
+    title: 'Mental Ability',
+    subtitle: 'Abstract, Logical, Spatial & Analytical Reasoning',
+    icon: 'Brain',
+    color: '#EAB308',
+    standardItems: 70,
+    sprintItems: 35,
+    standardMinutes: 30,
+    sprintMinutes: 15,
+    description: 'Pattern completion, spatial manipulation, analogies, number/letter sequences, and syllogistic logic.',
+  },
+  english: {
+    id: 'english',
+    title: 'English Proficiency',
+    subtitle: 'Grammar, Usage, Vocabulary & Reading Comprehension',
+    icon: 'BookOpen',
+    color: '#3B82F6',
+    standardItems: 70,
+    sprintItems: 35,
+    standardMinutes: 45,
+    sprintMinutes: 25,
+    description: 'Sentence correction, vocabulary in context, reading passages, idiomatic expressions, and structural synthesis.',
+  },
+  mathematics: {
+    id: 'mathematics',
+    title: 'Mathematics',
+    subtitle: 'Arithmetic, Algebra, Geometry, Trigonometry & Pre-Calculus',
+    icon: 'Calculator',
+    color: '#EF4444',
+    standardItems: 60,
+    sprintItems: 30,
+    standardMinutes: 45,
+    sprintMinutes: 25,
+    noCalculator: true,
+    description: 'No calculator allowed. Algebraic manipulation, circle/triangle geometry, quadratic equations, and trig identities.',
+  },
+  science: {
+    id: 'science',
+    title: 'Science',
+    subtitle: 'General Science, Biology, Chemistry, Physics & Earth Science',
+    icon: 'Atom',
+    color: '#10B981',
+    standardItems: 70,
+    sprintItems: 35,
+    standardMinutes: 45,
+    sprintMinutes: 25,
+    description: 'Cell biology, stoichiometry, chemical bonding, Newtonian mechanics, electromagnetism, and earth systems.',
+  },
+};

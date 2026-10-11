@@ -18,6 +18,7 @@ export default function LandingHero({
   onStartTierExam,
   onStartSubjectExam,
   onOpenDrillMode,
+  onOpenGenerator,
   savedSession,
   onResumeSavedSession,
   onDiscardSavedSession,
@@ -111,14 +112,22 @@ export default function LandingHero({
             Experience authentic USTET testing with full multi-item sections, randomized question & choice shuffling, strict sequential section locking, no-calculator rules in Mathematics, and session auto-saving.
           </p>
 
-          {/* Primary Action Button */}
-          <div className="pt-2">
+          {/* Primary Action Buttons */}
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={onStartFullExam}
-              className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-base rounded-2xl shadow-xl shadow-amber-500/25 flex items-center justify-center gap-3 mx-auto transition transform hover:-translate-y-0.5 cursor-pointer"
+              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2.5 transition transform hover:-translate-y-0.5 cursor-pointer"
             >
-              <span>Begin Full 4-Part Simulation (All 270 Items)</span>
-              <ArrowRight className="w-5 h-5" />
+              <Play className="w-5 h-5 fill-black" />
+              <span>Begin Full Simulation (All 270 Items)</span>
+            </button>
+
+            <button
+              onClick={() => onOpenGenerator('full')}
+              className="w-full sm:w-auto px-8 py-4 bg-[#1b1e2e] hover:bg-[#252a3f] border-2 border-amber-500/60 hover:border-amber-400 text-amber-300 hover:text-white font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-black/40 flex items-center justify-center gap-2.5 transition transform hover:-translate-y-0.5 cursor-pointer"
+            >
+              <Sparkles className="w-5 h-5 text-amber-400" />
+              <span>Generate New Exam Set</span>
             </button>
           </div>
 
@@ -126,31 +135,39 @@ export default function LandingHero({
           <div className="pt-4 border-t border-gray-800/80 space-y-4">
             <div>
               <span className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-2.5">
-                Select a Curated Question Set:
+                Select a Question Set / Generation Source:
               </span>
               <div className="flex flex-wrap items-center justify-center gap-2.5">
                 <button
+                  onClick={() => onOpenGenerator('full')}
+                  className="px-4 py-2.5 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-400/60 text-amber-300 font-black text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  🎲 Dynamic Algorithmic Mix
+                </button>
+
+                <button
                   onClick={() => onStartSetExam('set_a')}
-                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
                 >
                   <Award className="w-3.5 h-3.5 text-amber-400" />
-                  Balanced Mock Set A (135 Items • 90m)
+                  Balanced Mock Set A (135 Items)
                 </button>
 
                 <button
                   onClick={() => onStartSetExam('set_b')}
-                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
                 >
                   <Award className="w-3.5 h-3.5 text-amber-400" />
-                  Balanced Mock Set B (135 Items • 90m)
+                  Balanced Mock Set B (135 Items)
                 </button>
 
                 <button
                   onClick={() => onStartSetExam('express')}
-                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  Express Diagnostic Set (60 Items • 45m)
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  Express Diagnostic Set (60 Items)
                 </button>
               </div>
             </div>
@@ -235,12 +252,24 @@ export default function LandingHero({
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-gray-800/80 flex items-center justify-between text-xs">
+                <div className="pt-3 border-t border-gray-800/80 flex items-center justify-between text-xs gap-2">
                   <span className="text-amber-400 font-semibold group-hover:underline flex items-center gap-1">
                     <Play className="w-3 h-3 fill-current" />
                     Take Subject Exam
                   </span>
-                  <span className="text-gray-400 text-[11px]">{sub.totalTargetItems} Items</span>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenGenerator(sub.id);
+                    }}
+                    className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-[10px] font-bold text-amber-300 border border-amber-500/20 flex items-center gap-1 transition"
+                    title="Configure custom length & set for this subject"
+                  >
+                    <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                    Generate Set
+                  </button>
                 </div>
               </div>
             );
