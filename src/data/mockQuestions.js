@@ -3,6 +3,11 @@ import { ENGLISH_QUESTIONS } from './questions/english.js';
 import { MATHEMATICS_QUESTIONS } from './questions/mathematics.js';
 import { SCIENCE_QUESTIONS } from './questions/science.js';
 
+import { MENTAL_ABILITY_QUESTIONS_SET_B } from './questions/setB/mentalAbilitySetB.js';
+import { ENGLISH_QUESTIONS_SET_B } from './questions/setB/englishSetB.js';
+import { MATHEMATICS_QUESTIONS_SET_B } from './questions/setB/mathematicsSetB.js';
+import { SCIENCE_QUESTIONS_SET_B } from './questions/setB/scienceSetB.js';
+
 export const SUBTEST_METADATA = {
   mental_ability: {
     id: "mental_ability",
@@ -42,9 +47,25 @@ export const SUBTEST_METADATA = {
   },
 };
 
-export const MOCK_QUESTIONS = [
-  ...MENTAL_ABILITY_QUESTIONS,
-  ...ENGLISH_QUESTIONS,
-  ...MATHEMATICS_QUESTIONS,
-  ...SCIENCE_QUESTIONS,
+// Tag Set A items with set: 'set_a'
+export const SET_A_QUESTIONS = [
+  ...MENTAL_ABILITY_QUESTIONS.map(q => ({ ...q, set: 'set_a' })),
+  ...ENGLISH_QUESTIONS.map(q => ({ ...q, set: 'set_a' })),
+  ...MATHEMATICS_QUESTIONS.map(q => ({ ...q, set: 'set_a' })),
+  ...SCIENCE_QUESTIONS.map(q => ({ ...q, set: 'set_a' })),
 ];
+
+// Completely distinct new Set B questions
+export const SET_B_QUESTIONS = [
+  ...MENTAL_ABILITY_QUESTIONS_SET_B,
+  ...ENGLISH_QUESTIONS_SET_B,
+  ...MATHEMATICS_QUESTIONS_SET_B,
+  ...SCIENCE_QUESTIONS_SET_B,
+];
+
+// Unified master question pool for dynamic algorithmic generation
+export const MOCK_QUESTIONS = [
+  ...SET_A_QUESTIONS,
+  ...SET_B_QUESTIONS,
+];
+

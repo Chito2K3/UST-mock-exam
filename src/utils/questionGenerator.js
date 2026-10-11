@@ -1,4 +1,4 @@
-import { MOCK_QUESTIONS } from '../data/mockQuestions.js';
+import { MOCK_QUESTIONS, SET_A_QUESTIONS, SET_B_QUESTIONS } from '../data/mockQuestions.js';
 import { SUBTEST_SPECS, SET_CATALOG } from '../data/setRegistry.js';
 import { shuffleArray, shuffleChoices, shuffleQuestionsBySubtest } from './randomizer.js';
 
@@ -72,11 +72,6 @@ export function generateExamSet({
 
   activeSubtests.forEach((subtestKey) => {
     const spec = SUBTEST_SPECS[subtestKey];
-    let subtestPool = MOCK_QUESTIONS.filter((q) => q.subtest === subtestKey);
-
-    if (difficultyTier !== 'all') {
-      subtestPool = subtestPool.filter((q) => q.difficulty === difficultyTier);
-    }
 
     // Determine target count & duration for this subtest
     let targetCount = spec.standardItems;
@@ -94,28 +89,50 @@ export function generateExamSet({
 
     let sampled = [];
 
-    if (setId === 'dynamic') {
-      // Dynamic balanced algorithmic generation
-      sampled = sampleBalancedItems(subtestPool, targetCount);
+    if (setId === 'set_b') {
+      // Draw specifically from the brand-new SET B bank
+      let setBPool = SET_B_QUESTIONS.filter((q) => q.subtest === subtestKey);
+      if (difficultyTier !== 'all') {
+        setBPool = setBPool.filter((q) => q.difficulty === difficultyTier);
+      }
+
+      if (setBPool.length >= targetCount) {
+        sampled = sampleBalancedItems(setBPool, targetCount);
+      } else {
+        // If Set B has items, include ALL of Set B first
+        sampled = [...shuffleArray(setBPool)];
+        // Fill remaining items from general pool without duplicating
+        const setBIds = new Set(sampled.map((q) => q.id));
+        let remainingPool = MOCK_QUESTIONS.filter(
+          (q) => q.subtest === subtestKey && !setBIds.has(q.id)
+        );
+        if (difficultyTier !== 'all') {
+          remainingPool = remainingPool.filter((q) => q.difficulty === difficultyTier);
+        }
+        const needed = targetCount - sampled.length;
+        sampled.push(...sampleBalancedItems(remainingPool, needed));
+      }
     } else if (setId === 'set_a') {
-      if (targetCount >= subtestPool.length) {
-        sampled = [...subtestPool];
-      } else {
-        // Take front half
-        sampled = subtestPool.slice(0, targetCount);
+      // Draw specifically from official SET A baseline bank
+      let setAPool = SET_A_QUESTIONS.filter((q) => q.subtest === subtestKey);
+      if (difficultyTier !== 'all') {
+        setAPool = setAPool.filter((q) => q.difficulty === difficultyTier);
       }
-    } else if (setId === 'set_b') {
-      if (targetCount >= subtestPool.length) {
-        // Reverse order / alternating items to feel distinct from set A
-        sampled = [...subtestPool].reverse();
-      } else {
-        // Take back half
-        sampled = subtestPool.slice(-targetCount);
-      }
+      sampled = sampleBalancedItems(setAPool, targetCount);
     } else if (setId === 'express') {
-      sampled = sampleBalancedItems(subtestPool, 15);
+      // Express fast diagnostic from unified pool
+      let pool = MOCK_QUESTIONS.filter((q) => q.subtest === subtestKey);
+      if (difficultyTier !== 'all') {
+        pool = pool.filter((q) => q.difficulty === difficultyTier);
+      }
+      sampled = sampleBalancedItems(pool, 15);
     } else {
-      sampled = sampleBalancedItems(subtestPool, targetCount);
+      // Dynamic procedural generator draws from unified (Set A + Set B) pool
+      let pool = MOCK_QUESTIONS.filter((q) => q.subtest === subtestKey);
+      if (difficultyTier !== 'all') {
+        pool = pool.filter((q) => q.difficulty === difficultyTier);
+      }
+      sampled = sampleBalancedItems(pool, targetCount);
     }
 
     generatedQuestions.push(...sampled);
