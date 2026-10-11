@@ -19,6 +19,7 @@ import {
   generateQuestionSet,
 } from './utils/randomizer';
 import { generateExamSet } from './utils/questionGenerator.js';
+import { SUBTEST_SPECS } from './data/setRegistry.js';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'exam' | 'results'
@@ -82,13 +83,13 @@ export default function App() {
     let subtitleText = 'All 4 standard sections with authentic timing, question shuffling, and section locking';
 
     if (chosenSet === 'set_a') {
-      titleText = 'USTET Balanced Mock Set A';
+      titleText = 'USTET Full Mock Set A';
       badgeText = 'Curated Set A';
-      subtitleText = '135 authentic items balanced across Mental Ability, English, Math, and Science';
+      subtitleText = '270 authentic items balanced across Mental Ability, English, Math, and Science';
     } else if (chosenSet === 'set_b') {
-      titleText = 'USTET Balanced Mock Set B';
-      badgeText = 'Curated Set B';
-      subtitleText = '135 authentic items balanced across all 4 USTET subject domains';
+      titleText = 'USTET Brand-New Mock Set B';
+      badgeText = 'Curated Set B (100% New)';
+      subtitleText = '270 brand-new items with zero repeats from Set A';
     } else if (chosenSet === 'express') {
       titleText = 'USTET Express Diagnostic Set';
       badgeText = 'Express Set';
@@ -103,9 +104,9 @@ export default function App() {
       title: titleText,
       badge: badgeText,
       subtitle: subtitleText,
-      itemCount: chosenSet === 'express' ? 60 : chosenSet === 'set_a' || chosenSet === 'set_b' ? 135 : basePool.length,
+      itemCount: chosenSet === 'express' ? 60 : 270,
       partsCount: 4,
-      durationMinutes: chosenSet === 'express' ? 45 : chosenSet === 'set_a' || chosenSet === 'set_b' ? 90 : 165,
+      durationMinutes: chosenSet === 'express' ? 45 : 165,
       allowSetSelection: isFull,
       subjects: [
         'Part 1: Mental Ability',
@@ -122,7 +123,7 @@ export default function App() {
         const examBundle = generateExamSet({
           scope: 'full',
           setId: isFull ? selectedSet : 'dynamic',
-          lengthMode: selectedSet === 'express' ? 'express' : selectedSet === 'set_a' || selectedSet === 'set_b' ? 'sprint' : 'standard',
+          lengthMode: selectedSet === 'express' ? 'express' : 'standard',
           shuffleQuestions,
           randomizeChoices,
           difficultyTier,
@@ -135,7 +136,7 @@ export default function App() {
         setExamMode(isFull ? selectedSet : `tier-${difficultyTier}`);
         setExamMetadata({
           examMode: isFull ? selectedSet : `tier-${difficultyTier}`,
-          setName: titleText,
+          setName: examBundle.setName || titleText,
         });
         setExamResults(null);
         setCurrentView('exam');
@@ -147,34 +148,39 @@ export default function App() {
   // Request full subject-specific test
   const handleRequestSubjectExam = (subtestKey) => {
     const meta = SUBTEST_METADATA[subtestKey];
-    const filtered = MOCK_QUESTIONS.filter((q) => q.subtest === subtestKey);
+    const spec = SUBTEST_SPECS[subtestKey];
+    const targetCount = spec?.standardItems || 70;
+    const durationMins = meta?.defaultDurationMinutes || spec?.standardMinutes || 45;
 
     setPendingExam({
       title: `${meta?.title || 'Subject'} Examination`,
       badge: 'Single Subject Focus',
       subtitle: `${meta?.subtitle || 'Full-length subject section test'}`,
-      itemCount: filtered.length,
+      itemCount: targetCount,
       partsCount: 1,
-      durationMinutes: meta?.defaultDurationMinutes || 45,
-      allowSetSelection: false,
-      subjects: [`${meta?.title || 'Subject'} (${filtered.length} Items)`],
+      durationMinutes: durationMins,
+      allowSetSelection: true,
+      subjects: [`${meta?.title || 'Subject'} (${targetCount} Items)`],
       calculatorAllowed: false,
-      onConfirm: ({ shuffleQuestions = true, randomizeChoices = true } = {}) => {
+      onConfirm: ({ shuffleQuestions = true, randomizeChoices = true, selectedSet = 'dynamic' } = {}) => {
         clearActiveSession();
         setSavedSession(null);
         setInitialSessionState(null);
 
-        const preparedQuestions = shuffleQuestionsBySubtest(filtered, {
+        const examBundle = generateExamSet({
+          scope: subtestKey,
+          setId: selectedSet === 'full' ? 'dynamic' : selectedSet,
+          lengthMode: selectedSet === 'express' ? 'express' : 'standard',
           shuffleQuestions,
           randomizeChoices,
         });
 
-        setActiveQuestions(preparedQuestions);
+        setActiveQuestions(examBundle.questions);
         setActiveSubtests([subtestKey]);
-        setExamMode('subject');
+        setExamMode(`subject-${subtestKey}`);
         setExamMetadata({
-          examMode: 'subject',
-          setName: `${meta?.title} Section Exam`,
+          examMode: `subject-${subtestKey}`,
+          setName: `${meta?.title} (${examBundle.badge || 'Standard'})`,
         });
         setExamResults(null);
         setCurrentView('exam');

@@ -90,28 +90,15 @@ export function generateExamSet({
     let sampled = [];
 
     if (setId === 'set_b') {
-      // Draw specifically from the brand-new SET B bank
+      // Draw exclusively from the brand-new SET B bank (100% new, 0% crossover)
       let setBPool = SET_B_QUESTIONS.filter((q) => q.subtest === subtestKey);
       if (difficultyTier !== 'all') {
-        setBPool = setBPool.filter((q) => q.difficulty === difficultyTier);
-      }
-
-      if (setBPool.length >= targetCount) {
-        sampled = sampleBalancedItems(setBPool, targetCount);
-      } else {
-        // If Set B has items, include ALL of Set B first
-        sampled = [...shuffleArray(setBPool)];
-        // Fill remaining items from general pool without duplicating
-        const setBIds = new Set(sampled.map((q) => q.id));
-        let remainingPool = MOCK_QUESTIONS.filter(
-          (q) => q.subtest === subtestKey && !setBIds.has(q.id)
-        );
-        if (difficultyTier !== 'all') {
-          remainingPool = remainingPool.filter((q) => q.difficulty === difficultyTier);
+        const filtered = setBPool.filter((q) => q.difficulty === difficultyTier);
+        if (filtered.length > 0) {
+          setBPool = filtered;
         }
-        const needed = targetCount - sampled.length;
-        sampled.push(...sampleBalancedItems(remainingPool, needed));
       }
+      sampled = sampleBalancedItems(setBPool, Math.min(targetCount, setBPool.length));
     } else if (setId === 'set_a') {
       // Draw specifically from official SET A baseline bank
       let setAPool = SET_A_QUESTIONS.filter((q) => q.subtest === subtestKey);

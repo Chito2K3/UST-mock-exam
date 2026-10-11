@@ -52,15 +52,22 @@ export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
   let displayItemCount = itemCount;
   let displayDuration = durationMinutes;
   if (allowSetSelection) {
-    if (selectedSet === 'set_a' || selectedSet === 'set_b') {
-      displayItemCount = 135;
-      displayDuration = 90;
-    } else if (selectedSet === 'express') {
-      displayItemCount = 60;
-      displayDuration = 45;
+    if (partsCount === 4) {
+      if (selectedSet === 'express') {
+        displayItemCount = 60;
+        displayDuration = 45;
+      } else {
+        displayItemCount = 270;
+        displayDuration = 165;
+      }
     } else {
-      displayItemCount = 270;
-      displayDuration = 165;
+      if (selectedSet === 'express') {
+        displayItemCount = 15;
+        displayDuration = 11;
+      } else {
+        displayItemCount = itemCount;
+        displayDuration = durationMinutes;
+      }
     }
   }
 
@@ -112,10 +119,10 @@ export default function ExamStartModal({ isOpen, config, onConfirm, onClose }) {
             </label>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {[
-                { id: 'full', label: 'Full 270 Items', desc: '165 mins • All Items' },
-                { id: 'set_a', label: 'Balanced Set A', desc: '90 mins • 135 Items' },
-                { id: 'set_b', label: 'Balanced Set B', desc: '90 mins • 135 Items' },
-                { id: 'express', label: 'Express Diagnostic', desc: '45 mins • 60 Items' },
+                { id: 'full', label: 'Dynamic Generator', desc: partsCount === 4 ? '165 mins • 270 Items' : 'Standard Length' },
+                { id: 'set_a', label: 'Baseline Set A', desc: partsCount === 4 ? '165 mins • 270 Items' : 'Set A Baseline' },
+                { id: 'set_b', label: 'Brand-New Set B', desc: partsCount === 4 ? '165 mins • 270 New Items' : '100% New (Set B)' },
+                { id: 'express', label: 'Express Diagnostic', desc: partsCount === 4 ? '45 mins • 60 Items' : 'Sprint 15 Items' },
               ].map((s) => (
                 <button
                   key={s.id}

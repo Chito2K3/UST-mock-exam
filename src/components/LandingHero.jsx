@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Play,
   Zap,
+  Flame,
   Trash2,
 } from 'lucide-react';
 import { UST_PROGRAMS } from '../data/programs';
@@ -139,6 +140,22 @@ export default function LandingHero({
               </span>
               <div className="flex flex-wrap items-center justify-center gap-2.5">
                 <button
+                  onClick={() => onStartSetExam('set_b')}
+                  className="px-4 py-2.5 bg-gradient-to-r from-pink-950/70 to-rose-950/70 hover:from-pink-900/80 hover:to-rose-900/80 border border-pink-500/60 text-pink-300 font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition shadow-lg shadow-pink-950/40 cursor-pointer"
+                >
+                  <Flame className="w-3.5 h-3.5 text-pink-400" />
+                  🔥 Brand-New Mock Set B (270 Items • 0% Old)
+                </button>
+
+                <button
+                  onClick={() => onStartSetExam('set_a')}
+                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Award className="w-3.5 h-3.5 text-amber-400" />
+                  Curated Mock Set A (270 Items)
+                </button>
+
+                <button
                   onClick={() => onOpenGenerator('full')}
                   className="px-4 py-2.5 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-400/60 text-amber-300 font-black text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
                 >
@@ -147,26 +164,10 @@ export default function LandingHero({
                 </button>
 
                 <button
-                  onClick={() => onStartSetExam('set_a')}
-                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  <Award className="w-3.5 h-3.5 text-amber-400" />
-                  Balanced Mock Set A (135 Items)
-                </button>
-
-                <button
-                  onClick={() => onStartSetExam('set_b')}
-                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  <Award className="w-3.5 h-3.5 text-amber-400" />
-                  Balanced Mock Set B (135 Items)
-                </button>
-
-                <button
                   onClick={() => onStartSetExam('express')}
-                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                  className="px-4 py-2.5 bg-[#1b1e2e] hover:bg-[#252a3f] border border-cyan-500/40 text-cyan-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
                 >
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <Zap className="w-3.5 h-3.5 text-cyan-400" />
                   Express Diagnostic Set (60 Items)
                 </button>
               </div>

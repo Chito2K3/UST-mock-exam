@@ -369,6 +369,11 @@ export default function ExamEngine({
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
                   Part {currentSubtestIndex + 1} of {activeSubtests.length}
                 </span>
+                {examMetadata?.setName && (
+                  <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                    {examMetadata.setName}
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-gray-400 hidden sm:block">
                 Strict Section Locking: Answers are sealed upon advancing.
@@ -504,10 +509,20 @@ export default function ExamEngine({
               <div className="space-y-6">
                 {/* Question Metadata Header */}
                 <div className="flex items-center justify-between border-b border-gray-800/80 pb-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
                       Question {currentQuestionIndex + 1} of {subtestQuestions.length}
                     </span>
+                    {currentQuestion.id?.includes('-B-') ? (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/40 tracking-wider">
+                        ✨ SET B (NEW)
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30 tracking-wider">
+                        SET A
+                      </span>
+                    )}
+                    <span className="text-[11px] text-gray-400 font-mono">[{currentQuestion.id}]</span>
                     <span className="text-xs text-gray-400">{currentQuestion.topic}</span>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${

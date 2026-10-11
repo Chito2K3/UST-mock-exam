@@ -537,10 +537,20 @@ export default function ResultAnalytics({
                 >
                   {/* Item Header */}
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="w-7 h-7 rounded-lg bg-[#222638] text-white flex items-center justify-center font-bold text-xs border border-gray-700">
                         {originalIndex}
                       </span>
+                      {q.id?.includes('-B-') ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/40">
+                          SET B
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                          SET A
+                        </span>
+                      )}
+                      <span className="text-[11px] text-gray-400 font-mono">[{q.id}]</span>
                       <span className="text-xs font-semibold px-2 py-0.5 rounded bg-black/40 text-gray-300 border border-gray-700">
                         {SUBTEST_METADATA[q.subtest].title}
                       </span>
